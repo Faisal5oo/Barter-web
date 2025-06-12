@@ -132,6 +132,26 @@ const getFavoriteProducts = async (options = {}) => {
   }
 };
 
+// Get Free Products
+const getFreeProducts = async (options = {}) => {
+  try {
+    const params = new URLSearchParams();
+    
+    // Add all filter parameters for free products
+    Object.entries(options).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, value);
+      }
+    });
+
+    const response = await axiosInstanceWeb.get(`/product/free?${params.toString()}`);
+    // Backend returns { products: [...], pagination: {...}, category: "free", message: "..." }
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch free products');
+  }
+};
+
 // Create Product
 const createProduct = async (productData) => {
   try {
@@ -187,6 +207,17 @@ const incrementViews = async (productId) => {
   }
 };
 
+// Get Product Pricing Info
+const getProductPricing = async (productId) => {
+  try {
+    const response = await axiosInstanceWeb.get(`/product/${productId}/pricing`);
+    // Backend returns { acceptCashOffers: boolean, pricingInfo: {...} }
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch pricing info');
+  }
+};
+
 export {
   getAllProducts as getProducts,
   getProductById as getProduct,
@@ -194,9 +225,11 @@ export {
   getNearbyProducts,
   getMyListings,
   getFavoriteProducts as getFavorites,
+  getFreeProducts,
   createProduct,
   updateProduct,
   deleteProduct,
   toggleFavorite,
-  incrementViews
+  incrementViews,
+  getProductPricing
 }; 

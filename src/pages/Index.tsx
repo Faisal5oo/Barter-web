@@ -165,7 +165,7 @@ const Index = () => {
       <section className="py-16 bg-muted">
         <div className="container">
           <div className="text-center mb-12">
-            <h2 className="text-2xl font-semibold">How BarterNexus Works</h2>
+            <h2 className="text-2xl font-semibold">How BarterX Works</h2>
             <p className="text-muted-foreground mt-2">
               Simple steps to start trading
             </p>
@@ -220,7 +220,7 @@ const Index = () => {
           <div className="flex flex-col md:flex-row gap-8 items-center">
             <div className="md:w-1/2">
               <h2 className="text-2xl font-semibold mb-4">
-                Trading Safely on BarterNexus
+                Trading Safely on BarterX
               </h2>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
@@ -252,7 +252,7 @@ const Index = () => {
                   <div>
                     <h3 className="font-medium">Use secure payment methods</h3>
                     <p className="text-muted-foreground">
-                      When cash is involved, use the BarterNexus secure payment
+                      When cash is involved, use the BarterX secure payment
                       system.
                     </p>
                   </div>

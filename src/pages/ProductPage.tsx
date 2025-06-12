@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { useProduct, useIncrementViews, useDeleteProduct } from '@/hooks/useProducts';
+import { useProduct, useIncrementViews, useDeleteProduct, useProductPricing } from '@/hooks/useProducts';
 import { useCreateOffer } from '@/hooks/useOffers';
 import { useMyListings } from '@/hooks/useProducts';
 import AuthModal from '@/components/auth/AuthModal';
@@ -51,6 +51,7 @@ const ProductPage = () => {
 
   // Fetch product data using React Query
   const { data: product, isLoading, error, isError } = useProduct(id);
+  const { data: pricingInfo } = useProductPricing(id);
   const incrementViews = useIncrementViews();
   const createOffer = useCreateOffer();
   const deleteProduct = useDeleteProduct();
@@ -381,7 +382,14 @@ const ProductPage = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-muted-foreground">Cash Option</p>
-                          <p>{product.exchangePreferences.cashOption ? 'Yes' : 'No'}</p>
+                          <div className="flex items-center gap-2">
+                            <p>{product.exchangePreferences.cashOption ? 'Yes' : 'No'}</p>
+                            {!product.exchangePreferences.cashOption && !pricingInfo?.acceptCashOffers && (
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                Barter Only
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         {product.exchangePreferences.willingToAddCash !== undefined && (
                           <div>
@@ -551,12 +559,23 @@ const ProductPage = () => {
                         onClick={handleBarter}
                       >
                         <MessageSquare className="h-4 w-4 mr-2" />
-                        {isAuthenticated ? 'Start Barter' : 'Login to Barter'}
+                        {isAuthenticated 
+                          ? (product?.exchangePreferences?.cashOption || pricingInfo?.acceptCashOffers) 
+                            ? 'Start Barter' 
+                            : 'Make Barter Offer'
+                          : 'Login to Barter'
+                        }
                       </Button>
                       
                       {!isAuthenticated && (
                         <p className="text-sm text-muted-foreground text-center">
                           Please login or register to initiate a barter
+                        </p>
+                      )}
+                      
+                      {isAuthenticated && !product?.exchangePreferences?.cashOption && !pricingInfo?.acceptCashOffers && (
+                        <p className="text-sm text-muted-foreground text-center">
+                          💡 This seller only accepts product exchanges (no cash offers)
                         </p>
                       )}
                     </>
@@ -572,10 +591,16 @@ const ProductPage = () => {
         <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader className="space-y-4 pb-4 border-b">
             <DialogTitle className="text-2xl font-bold text-center">
-              Make a Barter Offer
+              {(product?.exchangePreferences?.cashOption || pricingInfo?.acceptCashOffers) 
+                ? 'Make a Barter Offer' 
+                : 'Make a Product Exchange Offer'
+              }
             </DialogTitle>
             <DialogDescription className="text-base text-center">
-              Select one of your products to offer in exchange for "{product?.title}"
+              {(product?.exchangePreferences?.cashOption || pricingInfo?.acceptCashOffers) 
+                ? `Select one of your products to offer in exchange for "${product?.title}"`
+                : `This seller only accepts product exchanges. Select one of your products to offer in exchange for "${product?.title}"`
+              }
             </DialogDescription>
           </DialogHeader>
 
@@ -633,8 +658,8 @@ const ProductPage = () => {
               )}
             </div>
 
-            {/* Exchange Type Selection - Only show if owner accepts cash */}
-            {product?.exchangePreferences?.cashOption && (
+            {/* Exchange Type Selection */}
+            {(product?.exchangePreferences?.cashOption || pricingInfo?.acceptCashOffers) ? (
               <div className="space-y-4">
                 <h4 className="text-lg font-semibold">Exchange Type</h4>
                 <div className="grid grid-cols-1 gap-3">
@@ -695,7 +720,7 @@ const ProductPage = () => {
                         }`} />
                         <div>
                           <h5 className="font-medium">Cash Only</h5>
-                          <p className="text-sm text-muted-foreground">Purchase with cash</p>
+                          <p className="text-sm text-muted-foreground">Make a cash offer without trading items</p>
                         </div>
                       </div>
                     </CardContent>
@@ -722,8 +747,39 @@ const ProductPage = () => {
                         min="0"
                       />
                     </div>
+                    {pricingInfo?.pricingInfo && (
+                      <div className="text-sm text-muted-foreground">
+                        {pricingInfo.pricingInfo.minPrice && pricingInfo.pricingInfo.maxPrice && (
+                          <p>Suggested range: PKR {pricingInfo.pricingInfo.minPrice.toLocaleString()} - PKR {pricingInfo.pricingInfo.maxPrice.toLocaleString()}</p>
+                        )}
+                        {pricingInfo.pricingInfo.fixedPrice && (
+                          <p>Fixed price: PKR {pricingInfo.pricingInfo.fixedPrice.toLocaleString()}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
+              </div>
+            ) : (
+              /* Barter Only Notice */
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold">Exchange Type</h4>
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-4 h-4 rounded-full bg-blue-600 mt-0.5" />
+                      <div className="flex-1">
+                        <h5 className="font-medium text-blue-900">Product Exchange Only</h5>
+                        <p className="text-sm text-blue-700 mt-1">
+                          This seller only accepts product exchanges (barter). Cash offers are not available for this item.
+                        </p>
+                        <p className="text-xs text-blue-600 mt-2">
+                          💡 You can offer one of your listed items in exchange for this product.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
 
@@ -741,7 +797,7 @@ const ProductPage = () => {
 
             <Separator />
 
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-between gap-4">
               <Button
                 variant="outline"
                 onClick={() => setShowBarterModal(false)}
@@ -751,7 +807,7 @@ const ProductPage = () => {
               </Button>
               <Button 
                 onClick={handleBarterSubmit}
-                disabled={!selectedProduct || createOffer.isPending}
+                disabled={(exchangeType !== 'cash_only' && !selectedProduct) || createOffer.isPending}
                 className="px-8 h-12"
               >
                 {createOffer.isPending ? (

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,7 +19,8 @@ const categories = [
   { id: 'Vehicles', name: 'Vehicles' },
   { id: 'Books', name: 'Books' },
   { id: 'Collectibles', name: 'Collectibles' },
-  { id: 'Music', name: 'Music' },
+  { id: 'food', name: 'Food & Grocery' },
+  { id: 'Free Stuff', name: 'Free Stuff' },
 ];
 
 const CategoryFilter: React.FC<CategoryFilterProps> = ({ onSelectCategory, selectedCategory }) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ProductCard, { ProductCardProps } from "./ProductCard";
-import { useProducts } from "@/hooks/useProducts";
+import { useProducts, useFreeProducts } from "@/hooks/useProducts";
 import { Loader2 } from "lucide-react";
 import {
   Pagination,
@@ -30,22 +30,35 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const filters: any = {
     page: currentPage,
     limit: itemsPerPage,
-    ...(category && { category }),
+    ...(category && category !== "Free Stuff" && { category }),
     ...(searchQuery && { search: searchQuery }),
     sortBy: 'newest',
   };
 
-  // Add exchange type filters
-  if (exchangeType === "barter") {
-    filters.cashOption = false;
-  } else if (exchangeType === "cash") {
-    filters.cashOption = true;
-  } else if (exchangeType === "both") {
-    filters.cashOption = true;
+  // Add exchange type filters (not applicable for free products)
+  if (category !== "Free Stuff") {
+    if (exchangeType === "barter") {
+      filters.cashOption = false;
+    } else if (exchangeType === "cash") {
+      filters.cashOption = true;
+    } else if (exchangeType === "both") {
+      filters.cashOption = true;
+    }
   }
 
-  // Fetch products using React Query
-  const { data, isLoading, error, isError } = useProducts(filters);
+  // Use different hooks based on whether we're fetching free products or regular products
+  const regularProductsQuery = useProducts(filters);
+  const freeProductsQuery = useFreeProducts({
+    page: currentPage,
+    limit: itemsPerPage,
+    ...(searchQuery && { search: searchQuery }),
+    sortBy: 'newest',
+  });
+
+  // Choose which query to use based on category
+  const { data, isLoading, error, isError } = category === "Free Stuff" 
+    ? freeProductsQuery 
+    : regularProductsQuery;
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -70,8 +83,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     ownerName: product.listedBy?.name || "Unknown User",
     ownerRating: product.listedBy?.rating || 4.5,
     location: product.location,
-    allowsCash: product.exchangePreferences?.cashOption || false,
-    allowsBarter: true, // Assuming all products allow barter by default
+    allowsCash: product.isFree ? false : (product.exchangePreferences?.cashOption || false),
+    allowsBarter: product.isFree ? false : true, // Free products don't allow barter
+    isFree: product.isFree || false,
     views: product.views,
     createdAt: product.createdAt,
     isFavorited: product.isFavorited,

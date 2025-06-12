@@ -13,6 +13,7 @@ export interface ProductCardProps {
   location: string;
   allowsCash: boolean;
   allowsBarter: boolean;
+  isFree?: boolean;
   onChatClick?: () => void;
   description?: string;
   views?: number;
@@ -32,6 +33,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   location,
   allowsCash,
   allowsBarter,
+  isFree,
   onChatClick,
   description,
   views,
@@ -52,6 +54,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     createdAt: createdAt || new Date().toISOString(),
     isFavorited,
     distance,
+    isFree: isFree || false,
     listedBy: {
       _id: 'unknown',
       name: ownerName,

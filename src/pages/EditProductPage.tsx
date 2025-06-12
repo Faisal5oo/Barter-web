@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { useProduct, useUpdateProduct, useDeleteProduct } from '../hooks/useProducts';
+import { useProduct, useUpdateProduct } from '../hooks/useProducts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,23 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, X, ArrowLeft, Trash2, Save, AlertTriangle } from 'lucide-react';
+import { Plus, X, ArrowLeft, Loader2 } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import ProductLocation from '@/components/product-form/ProductLocation';
 import ProductImageUpload from '@/components/upload/ProductImageUpload';
 
@@ -43,35 +31,60 @@ const CATEGORIES = [
   'Free Stuff'
 ] as const;
 
+const FOOD_TYPES = [
+  { value: 'fresh', label: 'Fresh' },
+  { value: 'packaged', label: 'Packaged' },
+  { value: 'cooked', label: 'Cooked' },
+  { value: 'other', label: 'Other' }
+] as const;
+
 const EditProductPage = () => {
-  const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const { productId } = useParams();
   const { toast } = useToast();
   const { user } = useSelector((state: RootState) => state.auth);
-  
-  // React Query hooks
-  const { data: product, isLoading, error } = useProduct(productId!);
+  const { data: product, isLoading, error } = useProduct(productId);
   const updateProduct = useUpdateProduct();
-  const deleteProduct = useDeleteProduct();
 
-  // Form state
+  // Basic Info
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string>('');
   const [images, setImages] = useState<string[]>([]);
+
+  // Food-specific fields
+  const [foodType, setFoodType] = useState('');
+  const [dietaryInfo, setDietaryInfo] = useState({
+    vegetarian: false,
+    vegan: false,
+    glutenFree: false,
+    containsNuts: false,
+    halal: false,
+    kosher: false
+  });
+
+  // Condition & Details (not applicable for food)
   const [condition, setCondition] = useState('');
   const [age, setAge] = useState('');
   const [warranty, setWarranty] = useState('');
   const [boxAccessories, setBoxAccessories] = useState('');
   const [screenCondition, setScreenCondition] = useState('');
   const [bodyCondition, setBodyCondition] = useState('');
+
+  // Exchange Preferences
   const [preferredItems, setPreferredItems] = useState<string[]>([]);
   const [newPreferredItem, setNewPreferredItem] = useState('');
   const [notInterestedIn, setNotInterestedIn] = useState<string[]>([]);
   const [newNotInterestedItem, setNewNotInterestedItem] = useState('');
   const [cashOption, setCashOption] = useState(false);
-  const [willingToAddCash, setWillingToAddCash] = useState(false);
   const [exchangeNotes, setExchangeNotes] = useState('');
+  
+  // Pricing
+  const [price, setPrice] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+
+  // Location & Shipping
   const [location, setLocation] = useState('');
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -82,108 +95,85 @@ const EditProductPage = () => {
   const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
   const [newPreferredLocation, setNewPreferredLocation] = useState('');
 
-  // UI state
+  // Progress tracking
   const [currentStep, setCurrentStep] = useState(1);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-
   const totalSteps = 4;
   const progress = (currentStep / totalSteps) * 100;
+
+  // Check if current category is food
+  const isFoodCategory = category === 'Food & Grocery' || category === 'food';
 
   // Populate form with existing product data
   useEffect(() => {
     if (product) {
+      // Check authorization
+      if (product.listedBy?._id !== user?.id && product.listedBy !== user?.id) {
+        toast({
+          title: 'Unauthorized',
+          description: 'You can only edit your own listings',
+          variant: 'destructive',
+        });
+        navigate('/my-listings');
+        return;
+      }
+
+      // Basic info
       setTitle(product.title || '');
       setDescription(product.description || '');
-      setCategory(product.category || '');
+      setCategory(product.category === 'food' ? 'Food & Grocery' : product.category || '');
       setImages(product.images || []);
+
+      // Food-specific fields
+      if (product.category === 'food') {
+        setFoodType(product.foodType || '');
+        setDietaryInfo(product.dietaryInfo || {
+          vegetarian: false,
+          vegan: false,
+          glutenFree: false,
+          containsNuts: false,
+          halal: false,
+          kosher: false
+        });
+      }
+
+      // Condition & Details
       setCondition(product.condition || '');
       setAge(product.age || '');
       setWarranty(product.warranty || '');
       setBoxAccessories(product.boxAccessories || '');
       setScreenCondition(product.screenCondition || '');
       setBodyCondition(product.bodyCondition || '');
-      setPreferredItems(product.exchangePreferences?.preferredItems || []);
-      setNotInterestedIn(product.exchangePreferences?.notInterestedIn || []);
-      setCashOption(product.exchangePreferences?.cashOption || false);
-      setWillingToAddCash(product.exchangePreferences?.willingToAddCash || false);
-      setExchangeNotes(product.exchangePreferences?.notes || '');
+
+      // Exchange Preferences
+      const exchangePrefs = product.exchangePreferences || {};
+      setPreferredItems(exchangePrefs.preferredItems || []);
+      setNotInterestedIn(exchangePrefs.notInterestedIn || []);
+      setCashOption(exchangePrefs.cashOption || false);
+      setExchangeNotes(exchangePrefs.notes || '');
+
+      // Pricing
+      setPrice(exchangePrefs.price ? exchangePrefs.price.toString() : '');
+      setMinPrice(exchangePrefs.minPrice ? exchangePrefs.minPrice.toString() : '');
+      setMaxPrice(exchangePrefs.maxPrice ? exchangePrefs.maxPrice.toString() : '');
+
+      // Location & Shipping
       setLocation(product.location || '');
       setLatitude(product.latitude || null);
       setLongitude(product.longitude || null);
-      setInPerson(product.shippingOptions?.inPerson ?? true);
-      setWithinMiles(product.shippingOptions?.withinMiles || 10);
-      setCanShip(product.shippingOptions?.canShip || false);
-      setBuyerPaysShipping(product.shippingOptions?.buyerPaysShipping ?? true);
-      setPreferredLocations(product.shippingOptions?.preferredLocations || []);
+      
+      const shippingOpts = product.shippingOptions || {};
+      setInPerson(shippingOpts.inPerson !== false);
+      setWithinMiles(shippingOpts.withinMiles || 10);
+      setCanShip(shippingOpts.canShip || false);
+      setBuyerPaysShipping(shippingOpts.buyerPaysShipping !== false);
+      setPreferredLocations(shippingOpts.preferredLocations || []);
     }
-  }, [product]);
+  }, [product, user, navigate, toast]);
 
-  // Check if user is the owner
-  const isOwner = user && product && (
-    user.id === product.listedBy?._id || 
-    user.id === product.listedBy?.id ||
-    user.id === product.listedBy
-  );
-
-  // Handle loading and error states
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p>Loading product...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
-            <p className="text-muted-foreground mb-4">The product you're looking for doesn't exist.</p>
-            <Button onClick={() => navigate('/my-listings')}>
-              Back to My Listings
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!isOwner) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-            <p className="text-muted-foreground mb-4">You can only edit products that you have listed.</p>
-            <Button onClick={() => navigate(`/product/${productId}`)}>
-              View Product
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  // Handlers for form interactions
   const handleAddPreferredItem = () => {
     if (newPreferredItem && !preferredItems.includes(newPreferredItem)) {
       setPreferredItems([...preferredItems, newPreferredItem]);
       setNewPreferredItem('');
-      setHasChanges(true);
     }
   };
 
@@ -191,7 +181,6 @@ const EditProductPage = () => {
     if (newNotInterestedItem && !notInterestedIn.includes(newNotInterestedItem)) {
       setNotInterestedIn([...notInterestedIn, newNotInterestedItem]);
       setNewNotInterestedItem('');
-      setHasChanges(true);
     }
   };
 
@@ -199,16 +188,44 @@ const EditProductPage = () => {
     if (newPreferredLocation && !preferredLocations.includes(newPreferredLocation)) {
       setPreferredLocations([...preferredLocations, newPreferredLocation]);
       setNewPreferredLocation('');
-      setHasChanges(true);
     }
   };
 
-  // Track form changes
-  const handleFormChange = () => {
-    setHasChanges(true);
+  const handleCategoryChange = (newCategory: string) => {
+    setCategory(newCategory);
+    
+    // Reset form fields when switching to/from food category
+    if (newCategory === 'Food & Grocery') {
+      // Reset non-food fields
+      setCondition('');
+      setAge('');
+      setWarranty('');
+      setBoxAccessories('');
+      setScreenCondition('');
+      setBodyCondition('');
+      // Set food-specific defaults
+      if (!foodType) setFoodType('fresh');
+    } else {
+      // Reset food-specific fields
+      setFoodType('');
+      setDietaryInfo({
+        vegetarian: false,
+        vegan: false,
+        glutenFree: false,
+        containsNuts: false,
+        halal: false,
+        kosher: false
+      });
+    }
   };
 
-  // Handle form submission
+  const handleDietaryInfoChange = (key: keyof typeof dietaryInfo, value: boolean) => {
+    setDietaryInfo(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -224,32 +241,27 @@ const EditProductPage = () => {
     if (latitude === null || longitude === null) {
       toast({
         title: 'Location Required',
-        description: 'Please provide location coordinates',
+        description: 'Please provide location coordinates by using "Current Location" or entering them manually',
         variant: 'destructive',
       });
       return;
     }
 
-    const productData = {
+    // Food-specific validation
+    if (isFoodCategory && !foodType) {
+      toast({
+        title: 'Food Type Required',
+        description: 'Please select a food type for food listings',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    let productData: any = {
       title,
       description,
-      category,
+      category: isFoodCategory ? 'food' : category,
       images,
-      specs: {},
-      condition,
-      age,
-      warranty,
-      boxAccessories,
-      screenCondition,
-      bodyCondition,
-      exchangePreferences: {
-        preferredItems,
-        notInterestedIn,
-        cashOption,
-        willingToAddCash,
-        estimatedValue: product?.exchangePreferences?.estimatedValue || 0,
-        notes: exchangeNotes,
-      },
       location,
       latitude,
       longitude,
@@ -260,32 +272,103 @@ const EditProductPage = () => {
         buyerPaysShipping,
         preferredLocations,
       },
+      exchangePreferences: {
+        preferredItems,
+        notInterestedIn,
+        cashOption,
+        estimatedValue: price ? parseFloat(price) : 0,
+        price: price ? parseFloat(price) : undefined,
+        minPrice: minPrice ? parseFloat(minPrice) : undefined,
+        maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+        notes: exchangeNotes,
+      },
     };
 
+    if (isFoodCategory) {
+      // Add food-specific fields
+      productData.foodType = foodType;
+      productData.dietaryInfo = dietaryInfo;
+      
+      // Keep existing expiry date for food products (don't update it)
+      if (product?.expiryDate) {
+        productData.expiryDate = product.expiryDate;
+      }
+    } else {
+      // Add regular product fields
+      productData.specs = {};
+      productData.condition = condition;
+      productData.age = age;
+      productData.warranty = warranty;
+      productData.boxAccessories = boxAccessories;
+      productData.screenCondition = screenCondition;
+      productData.bodyCondition = bodyCondition;
+    }
+
     try {
-      await updateProduct.mutateAsync({
-        productId: productId!,
-        productData
-      });
-      setHasChanges(false);
-      navigate(`/product/${productId}`);
+      await updateProduct.mutateAsync({ productId, productData });
+      // Success handling is done in the hook
     } catch (error) {
-      // Error handling is done in the hook
+      // Enhanced error handling
+      console.error('Product update error:', error);
+      
+      let errorMessage = 'Failed to update product. Please try again.';
+      
+      if (error?.message?.includes('validation failed')) {
+        if (isFoodCategory) {
+          errorMessage = 'Food listing validation failed. Please check all required fields and try again.';
+        } else {
+          errorMessage = 'Product validation failed. Please check all required fields and try again.';
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: isFoodCategory ? 'Food Listing Update Error' : 'Product Update Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   };
 
-  // Handle product deletion
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await deleteProduct.mutateAsync(productId!);
-      // Navigation is handled in the hook
-    } catch (error) {
-      // Error handling is done in the hook
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span>Loading product details...</span>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow bg-background">
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-destructive mb-2">Product Not Found</h2>
+                <p className="text-muted-foreground mb-4">The product you're trying to edit doesn't exist or has been removed.</p>
+                <Button onClick={() => navigate('/my-listings')}>Back to My Listings</Button>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -298,62 +381,21 @@ const EditProductPage = () => {
             <Button
               variant="ghost"
               className="mb-4"
-              onClick={() => navigate(`/product/${productId}`)}
+              onClick={() => navigate('/my-listings')}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Product
+              Back to My Listings
             </Button>
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Edit Product</h1>
-                <p className="text-muted-foreground mt-2">
-                  Update your listing details and manage images
-                </p>
-              </div>
-              
-              {/* Delete Button */}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="gap-2">
-                    <Trash2 className="h-4 w-4" />
-                    Delete Product
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-destructive" />
-                      Delete Product
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete "{product?.title}"? This action cannot be undone.
-                      All offers and messages related to this product will also be removed.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      disabled={isDeleting}
-                    >
-                      {isDeleting ? 'Deleting...' : 'Delete Product'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+            <h1 className="text-3xl font-bold tracking-tight">Edit Your Listing</h1>
+            <p className="text-muted-foreground mt-2">
+              Update your listing details to keep it current and attractive
+              {isFoodCategory && product?.expiryDate && (
+                <span className="block text-amber-600 font-medium mt-1">
+                  ⏰ This food listing expires at {new Date(product.expiryDate).toLocaleString()}
+                </span>
+              )}
+            </p>
           </div>
-
-          {/* Changes indicator */}
-          {hasChanges && (
-            <Alert className="mb-6 border-orange-200 bg-orange-50">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                You have unsaved changes. Don't forget to save your updates!
-              </AlertDescription>
-            </Alert>
-          )}
 
           {/* Progress Bar */}
           <div className="mb-8">
@@ -368,7 +410,12 @@ const EditProductPage = () => {
             <CardHeader>
               <CardTitle>Update Your Listing</CardTitle>
               <CardDescription>
-                Modify the details below to update your listing. Fields marked with * are required.
+                Make changes to your listing details. Fields marked with * are required.
+                {isFoodCategory && (
+                  <span className="block text-amber-600 mt-1">
+                    Food listings cannot have their expiry date extended.
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -387,7 +434,9 @@ const EditProductPage = () => {
                 >
                   <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                    <TabsTrigger value="condition">Condition</TabsTrigger>
+                    <TabsTrigger value="condition">
+                      {isFoodCategory ? 'Food Details' : 'Condition'}
+                    </TabsTrigger>
                     <TabsTrigger value="exchange">Exchange</TabsTrigger>
                     <TabsTrigger value="shipping">Shipping</TabsTrigger>
                   </TabsList>
@@ -398,11 +447,8 @@ const EditProductPage = () => {
                       <Input
                         id="title"
                         value={title}
-                        onChange={(e) => {
-                          setTitle(e.target.value);
-                          handleFormChange();
-                        }}
-                        placeholder="Enter a descriptive title"
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder={isFoodCategory ? "e.g., Fresh Homemade Pizza" : "Enter a descriptive title"}
                         required
                       />
                     </div>
@@ -412,25 +458,15 @@ const EditProductPage = () => {
                       <Textarea
                         id="description"
                         value={description}
-                        onChange={(e) => {
-                          setDescription(e.target.value);
-                          handleFormChange();
-                        }}
-                        placeholder="Describe your item in detail"
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder={isFoodCategory ? "Describe your food item, ingredients, preparation method..." : "Describe your item in detail"}
                         rows={4}
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="category">Category *</Label>
-                      <Select 
-                        value={category} 
-                        onValueChange={(value) => {
-                          setCategory(value);
-                          handleFormChange();
-                        }}
-                        required
-                      >
+                      <Select value={category} onValueChange={handleCategoryChange} required>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
@@ -446,92 +482,168 @@ const EditProductPage = () => {
 
                     <ProductImageUpload
                       imageUrls={images}
-                      onImagesChange={(urls) => {
-                        setImages(urls);
-                        handleFormChange();
-                      }}
+                      onImagesChange={setImages}
                       maxImages={10}
                     />
                   </TabsContent>
 
                   <TabsContent value="condition" className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="condition">Condition</Label>
-                      <Input
-                        id="condition"
-                        value={condition}
-                        onChange={(e) => {
-                          setCondition(e.target.value);
-                          handleFormChange();
-                        }}
-                        placeholder="e.g., Like New, Good, Fair"
-                      />
-                    </div>
+                    {isFoodCategory ? (
+                      // Food-specific fields (same as AddProductPage)
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="foodType">Food Type *</Label>
+                          <Select value={foodType} onValueChange={setFoodType} required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select food type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {FOOD_TYPES.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="age">Age</Label>
-                      <Input
-                        id="age"
-                        value={age}
-                        onChange={(e) => {
-                          setAge(e.target.value);
-                          handleFormChange();
-                        }}
-                        placeholder="e.g., 2 years old"
-                      />
-                    </div>
+                        <div className="space-y-4">
+                          <Label className="text-base font-medium">Dietary Information</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="vegetarian" className="text-sm">Vegetarian</Label>
+                              <Switch
+                                id="vegetarian"
+                                checked={dietaryInfo.vegetarian}
+                                onCheckedChange={(value) => handleDietaryInfoChange('vegetarian', value)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="vegan" className="text-sm">Vegan</Label>
+                              <Switch
+                                id="vegan"
+                                checked={dietaryInfo.vegan}
+                                onCheckedChange={(value) => handleDietaryInfoChange('vegan', value)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="glutenFree" className="text-sm">Gluten Free</Label>
+                              <Switch
+                                id="glutenFree"
+                                checked={dietaryInfo.glutenFree}
+                                onCheckedChange={(value) => handleDietaryInfoChange('glutenFree', value)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="containsNuts" className="text-sm">Contains Nuts</Label>
+                              <Switch
+                                id="containsNuts"
+                                checked={dietaryInfo.containsNuts}
+                                onCheckedChange={(value) => handleDietaryInfoChange('containsNuts', value)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="halal" className="text-sm">Halal</Label>
+                              <Switch
+                                id="halal"
+                                checked={dietaryInfo.halal}
+                                onCheckedChange={(value) => handleDietaryInfoChange('halal', value)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="kosher" className="text-sm">Kosher</Label>
+                              <Switch
+                                id="kosher"
+                                checked={dietaryInfo.kosher}
+                                onCheckedChange={(value) => handleDietaryInfoChange('kosher', value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="warranty">Warranty</Label>
-                      <Input
-                        id="warranty"
-                        value={warranty}
-                        onChange={(e) => {
-                          setWarranty(e.target.value);
-                          handleFormChange();
-                        }}
-                        placeholder="e.g., 1 year manufacturer warranty"
-                      />
-                    </div>
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                          <div className="flex items-start space-x-2">
+                            <div className="text-amber-600 mt-0.5">⚠️</div>
+                            <div className="text-sm text-amber-700">
+                              <p className="font-medium">Food Safety Notice:</p>
+                              <ul className="mt-1 space-y-1">
+                                <li>• Ensure food is prepared in hygienic conditions</li>
+                                <li>• Food listings expire automatically after 24 hours</li>
+                                <li>• Exchange should happen as soon as possible for freshness</li>
+                              </ul>
+                              {product?.expiryDate && (
+                                <div className="mt-2 p-2 bg-amber-100 rounded text-xs">
+                                  <strong>Current Expiry:</strong> {new Date(product.expiryDate).toLocaleString()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      // Regular product condition fields (same as AddProductPage)
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="condition">Condition</Label>
+                          <Input
+                            id="condition"
+                            value={condition}
+                            onChange={(e) => setCondition(e.target.value)}
+                            placeholder="e.g., Like New, Good, Fair"
+                          />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="boxAccessories">Box & Accessories</Label>
-                      <Input
-                        id="boxAccessories"
-                        value={boxAccessories}
-                        onChange={(e) => {
-                          setBoxAccessories(e.target.value);
-                          handleFormChange();
-                        }}
-                        placeholder="e.g., Original box, charger, manual"
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="age">Age</Label>
+                          <Input
+                            id="age"
+                            value={age}
+                            onChange={(e) => setAge(e.target.value)}
+                            placeholder="e.g., 2 years old"
+                          />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="screenCondition">Screen Condition</Label>
-                      <Input
-                        id="screenCondition"
-                        value={screenCondition}
-                        onChange={(e) => {
-                          setScreenCondition(e.target.value);
-                          handleFormChange();
-                        }}
-                        placeholder="e.g., No scratches, minor wear"
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="warranty">Warranty</Label>
+                          <Input
+                            id="warranty"
+                            value={warranty}
+                            onChange={(e) => setWarranty(e.target.value)}
+                            placeholder="e.g., 1 year manufacturer warranty"
+                          />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="bodyCondition">Body Condition</Label>
-                      <Input
-                        id="bodyCondition"
-                        value={bodyCondition}
-                        onChange={(e) => {
-                          setBodyCondition(e.target.value);
-                          handleFormChange();
-                        }}
-                        placeholder="e.g., Minor scratches, dents"
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="boxAccessories">Box & Accessories</Label>
+                          <Input
+                            id="boxAccessories"
+                            value={boxAccessories}
+                            onChange={(e) => setBoxAccessories(e.target.value)}
+                            placeholder="e.g., Original box, charger, manual"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="screenCondition">Screen Condition</Label>
+                          <Input
+                            id="screenCondition"
+                            value={screenCondition}
+                            onChange={(e) => setScreenCondition(e.target.value)}
+                            placeholder="e.g., No scratches, minor wear"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="bodyCondition">Body Condition</Label>
+                          <Input
+                            id="bodyCondition"
+                            value={bodyCondition}
+                            onChange={(e) => setBodyCondition(e.target.value)}
+                            placeholder="e.g., Minor scratches, dents"
+                          />
+                        </div>
+                      </>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="exchange" className="space-y-6">
@@ -541,7 +653,7 @@ const EditProductPage = () => {
                         <Input
                           value={newPreferredItem}
                           onChange={(e) => setNewPreferredItem(e.target.value)}
-                          placeholder="Add preferred item"
+                          placeholder={isFoodCategory ? "e.g., Other food items, Kitchen appliances" : "Add preferred item"}
                         />
                         <Button type="button" onClick={handleAddPreferredItem}>
                           <Plus className="h-4 w-4 mr-2" />
@@ -560,10 +672,7 @@ const EditProductPage = () => {
                               variant="ghost"
                               size="icon"
                               className="h-4 w-4"
-                              onClick={() => {
-                                setPreferredItems(preferredItems.filter(i => i !== item));
-                                handleFormChange();
-                              }}
+                              onClick={() => setPreferredItems(preferredItems.filter(i => i !== item))}
                             >
                               <X className="h-3 w-3" />
                             </Button>
@@ -578,7 +687,7 @@ const EditProductPage = () => {
                         <Input
                           value={newNotInterestedItem}
                           onChange={(e) => setNewNotInterestedItem(e.target.value)}
-                          placeholder="Add item you're not interested in"
+                          placeholder={isFoodCategory ? "e.g., Electronics, Clothing" : "Add item you're not interested in"}
                         />
                         <Button type="button" onClick={handleAddNotInterestedItem}>
                           <Plus className="h-4 w-4 mr-2" />
@@ -597,10 +706,7 @@ const EditProductPage = () => {
                               variant="ghost"
                               size="icon"
                               className="h-4 w-4"
-                              onClick={() => {
-                                setNotInterestedIn(notInterestedIn.filter(i => i !== item));
-                                handleFormChange();
-                              }}
+                              onClick={() => setNotInterestedIn(notInterestedIn.filter(i => i !== item))}
                             >
                               <X className="h-3 w-3" />
                             </Button>
@@ -615,58 +721,138 @@ const EditProductPage = () => {
                         <Switch
                           id="cashOption"
                           checked={cashOption}
-                          onCheckedChange={(checked) => {
-                            setCashOption(checked);
-                            handleFormChange();
-                          }}
+                          onCheckedChange={setCashOption}
                         />
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="willingToAddCash">Willing to Add Cash</Label>
-                        <Switch
-                          id="willingToAddCash"
-                          checked={willingToAddCash}
-                          onCheckedChange={(checked) => {
-                            setWillingToAddCash(checked);
-                            handleFormChange();
-                          }}
-                        />
-                      </div>
+                      {/* Price Range Section */}
+                      {cashOption && (
+                        <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                          <Label className="text-base font-medium">Pricing Information</Label>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="min-price">Minimum Price (PKR)</Label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">PKR</span>
+                                <Input
+                                  id="min-price"
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="0"
+                                  className="pl-12"
+                                  value={minPrice}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (/^(\d*\.?\d{0,2})$/.test(value) || value === '') {
+                                      setMinPrice(value);
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="max-price">Maximum Price (PKR)</Label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">PKR</span>
+                                <Input
+                                  id="max-price"
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="0"
+                                  className="pl-12"
+                                  value={maxPrice}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (/^(\d*\.?\d{0,2})$/.test(value) || value === '') {
+                                      setMaxPrice(value);
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="fixed-price">Or set a fixed price (PKR)</Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">PKR</span>
+                              <Input
+                                id="fixed-price"
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="0"
+                                className="pl-12"
+                                value={price}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (/^(\d*\.?\d{0,2})$/.test(value) || value === '') {
+                                    setPrice(value);
+                                  }
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Leave empty if you specified a price range above
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="space-y-2">
                         <Label htmlFor="exchangeNotes">Exchange Notes</Label>
                         <Textarea
                           id="exchangeNotes"
                           value={exchangeNotes}
-                          onChange={(e) => {
-                            setExchangeNotes(e.target.value);
-                            handleFormChange();
-                          }}
-                          placeholder="Any additional notes about exchange preferences"
+                          onChange={(e) => setExchangeNotes(e.target.value)}
+                          placeholder={isFoodCategory ? "e.g., Looking for healthy food exchanges, prefer organic items..." : "Any additional notes about exchange preferences"}
                           rows={3}
                         />
                       </div>
+
+                      {isFoodCategory && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start space-x-2">
+                            <div className="text-blue-600 mt-0.5">💡</div>
+                            <div className="text-sm text-blue-700">
+                              <p className="font-medium">Food Exchange Tips:</p>
+                              <ul className="mt-1 space-y-1">
+                                <li>• Consider equal portion sizes when exchanging</li>
+                                <li>• Specify dietary preferences clearly</li>
+                                <li>• Quick exchanges ensure freshness</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </TabsContent>
 
                   <TabsContent value="shipping" className="space-y-6">
+                    {isFoodCategory && (
+                      <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg mb-6">
+                        <div className="flex items-start space-x-2">
+                          <div className="text-orange-600 mt-0.5">🍕</div>
+                          <div className="text-sm text-orange-700">
+                            <p className="font-medium">Food Delivery Considerations:</p>
+                            <ul className="mt-1 space-y-1">
+                              <li>• In-person pickup is recommended for food safety</li>
+                              <li>• Keep delivery distance short to maintain freshness</li>
+                              <li>• Consider temperature-sensitive items</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <ProductLocation
                       location={location}
-                      setLocation={(loc) => {
-                        setLocation(loc);
-                        handleFormChange();
-                      }}
+                      setLocation={setLocation}
                       latitude={latitude}
-                      setLatitude={(lat) => {
-                        setLatitude(lat);
-                        handleFormChange();
-                      }}
+                      setLatitude={setLatitude}
                       longitude={longitude}
-                      setLongitude={(lng) => {
-                        setLongitude(lng);
-                        handleFormChange();
-                      }}
+                      setLongitude={setLongitude}
                     />
 
                     <div className="space-y-4">
@@ -675,10 +861,7 @@ const EditProductPage = () => {
                         <Switch
                           id="inPerson"
                           checked={inPerson}
-                          onCheckedChange={(checked) => {
-                            setInPerson(checked);
-                            handleFormChange();
-                          }}
+                          onCheckedChange={setInPerson}
                         />
                       </div>
 
@@ -689,13 +872,15 @@ const EditProductPage = () => {
                             id="withinMiles"
                             type="number"
                             value={withinMiles}
-                            onChange={(e) => {
-                              setWithinMiles(Number(e.target.value));
-                              handleFormChange();
-                            }}
+                            onChange={(e) => setWithinMiles(Number(e.target.value))}
                             min={1}
-                            max={100}
+                            max={isFoodCategory ? 25 : 100}
                           />
+                          {isFoodCategory && (
+                            <p className="text-xs text-amber-600">
+                              Recommended: Keep within 25 miles for food freshness
+                            </p>
+                          )}
                         </div>
                       )}
 
@@ -704,12 +889,17 @@ const EditProductPage = () => {
                         <Switch
                           id="canShip"
                           checked={canShip}
-                          onCheckedChange={(checked) => {
-                            setCanShip(checked);
-                            handleFormChange();
-                          }}
+                          onCheckedChange={setCanShip}
                         />
                       </div>
+
+                      {isFoodCategory && canShip && (
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm text-yellow-700">
+                            ⚠️ <strong>Note:</strong> Shipping food items requires proper packaging and may affect freshness. Consider local pickup instead.
+                          </p>
+                        </div>
+                      )}
 
                       {canShip && (
                         <div className="flex items-center justify-between">
@@ -717,10 +907,7 @@ const EditProductPage = () => {
                           <Switch
                             id="buyerPaysShipping"
                             checked={buyerPaysShipping}
-                            onCheckedChange={(checked) => {
-                              setBuyerPaysShipping(checked);
-                              handleFormChange();
-                            }}
+                            onCheckedChange={setBuyerPaysShipping}
                           />
                         </div>
                       )}
@@ -731,7 +918,7 @@ const EditProductPage = () => {
                           <Input
                             value={newPreferredLocation}
                             onChange={(e) => setNewPreferredLocation(e.target.value)}
-                            placeholder="Add preferred location"
+                            placeholder={isFoodCategory ? "e.g., Central Park, Coffee shops, Markets" : "Add preferred location"}
                           />
                           <Button type="button" onClick={handleAddPreferredLocation}>
                             <Plus className="h-4 w-4 mr-2" />
@@ -750,10 +937,7 @@ const EditProductPage = () => {
                                 variant="ghost"
                                 size="icon"
                                 className="h-4 w-4"
-                                onClick={() => {
-                                  setPreferredLocations(preferredLocations.filter(l => l !== loc));
-                                  handleFormChange();
-                                }}
+                                onClick={() => setPreferredLocations(preferredLocations.filter(l => l !== loc))}
                               >
                                 <X className="h-3 w-3" />
                               </Button>
@@ -767,7 +951,7 @@ const EditProductPage = () => {
 
                 <Separator />
 
-                <div className="flex justify-between">
+                <div className="flex justify-end gap-4">
                   <Button
                     type="button"
                     variant="outline"
@@ -775,18 +959,9 @@ const EditProductPage = () => {
                   >
                     Cancel
                   </Button>
-                  
-                  <div className="flex gap-4">
-                    <Button 
-                      type="submit" 
-                      size="lg"
-                      disabled={updateProduct.isPending || !hasChanges}
-                      className="gap-2"
-                    >
-                      <Save className="h-4 w-4" />
-                      {updateProduct.isPending ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                  </div>
+                  <Button type="submit" size="lg" disabled={updateProduct.isPending}>
+                    {updateProduct.isPending ? 'Updating...' : 'Update Listing'}
+                  </Button>
                 </div>
               </form>
             </CardContent>

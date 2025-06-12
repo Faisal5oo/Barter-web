@@ -78,7 +78,7 @@ const ReviewAndPublish = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Listing published successfully!</AlertDialogTitle>
               <AlertDialogDescription>
-                Your item has been listed on BarterNexus and is now visible to potential traders.
+                Your item has been listed on BarterX and is now visible to potential traders.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

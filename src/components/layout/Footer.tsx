@@ -10,7 +10,7 @@ const Footer = () => {
           <div>
             <Link to="/" className="flex items-center gap-2 font-bold text-xl">
               <ShoppingBag className="h-6 w-6 text-secondary" />
-              <span>BarterNexus</span>
+              <span>BarterX</span>
             </Link>
             <p className="mt-4 text-muted-foreground text-sm">
               A modern marketplace for bartering goods and services. Trade what you have for what you need.

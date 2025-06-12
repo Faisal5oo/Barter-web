@@ -7,12 +7,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { store } from './store';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { useAuthInit } from './hooks/useAuthInit';
+import Chatbot from './components/chat/Chatbot';
 
 import Index from "./pages/Index";
 import ProductPage from "./pages/ProductPage";
 import NotFound from "./pages/NotFound";
 import CategoryPage from "./pages/CategoryPage";
 import AddProductPage from "./pages/AddProductPage";
+import EditProductPage from "./pages/EditProductPage";
 import NearbyProductsPage from "./pages/NearbyProductsPage";
 import BrowsePage from "./pages/BrowsePage";
 import MyListingPage from "./pages/MyListingPage";
@@ -110,10 +112,16 @@ const App = () => (
                 <AddProductPage />
               </ProtectedRoute>
             } />
+            <Route path="/edit-product/:id" element={
+              <ProtectedRoute>
+                <EditProductPage />
+              </ProtectedRoute>
+            } />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <Chatbot />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

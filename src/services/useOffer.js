@@ -4,7 +4,22 @@ import { axiosInstanceWeb } from '../lib/axiosInstance';
 // Create new barter offer
 const createOffer = async (offerData) => {
   try {
-    const response = await axiosInstanceWeb.post('/offers', offerData);
+    // Transform frontend exchangeType to backend offerType and structure
+    const backendOfferData = {
+      offeredTo: offerData.offeredTo,
+      requestedProduct: offerData.requestedProduct,
+      message: offerData.message,
+      offerType: offerData.exchangeType, // 'barter', 'barter-plus-cash', 'cash-only'
+      ...(offerData.exchangeType !== 'cash_only' && offerData.offeredProduct && {
+        offeredProduct: offerData.offeredProduct
+      }),
+      ...(offerData.cashAmount && {
+        cashAmount: offerData.cashAmount,
+        currency: 'PKR' // Default currency
+      })
+    };
+
+    const response = await axiosInstanceWeb.post('/offers', backendOfferData);
     // Backend returns the created offer object with populated fields
     return response.data;
   } catch (error) {

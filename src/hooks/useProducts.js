@@ -8,11 +8,13 @@ import {
   getNearbyProducts,
   getMyListings,
   getFavorites,
+  getFreeProducts,
   createProduct,
   updateProduct,
   deleteProduct,
   toggleFavorite,
-  incrementViews
+  incrementViews,
+  getProductPricing
 } from '../services/useProduct';
 import { useState, useCallback } from 'react';
 
@@ -25,6 +27,7 @@ export const PRODUCT_QUERY_KEYS = {
   detail: (id) => [...PRODUCT_QUERY_KEYS.details(), id],
   myListings: () => [...PRODUCT_QUERY_KEYS.all, 'myListings'],
   favorites: () => [...PRODUCT_QUERY_KEYS.all, 'favorites'],
+  free: (filters) => [...PRODUCT_QUERY_KEYS.all, 'free', filters],
   category: (categoryName) => [...PRODUCT_QUERY_KEYS.all, 'category', categoryName],
   nearby: (location, options) => [...PRODUCT_QUERY_KEYS.all, 'nearby', location, options],
 };
@@ -333,6 +336,16 @@ export const useFavorites = (options = {}) => {
   });
 };
 
+// Get Free Products
+export const useFreeProducts = (filters = {}) => {
+  return useQuery({
+    queryKey: PRODUCT_QUERY_KEYS.free(filters),
+    queryFn: () => getFreeProducts(filters),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
 // Create Product
 export const useCreateProduct = () => {
   const queryClient = useQueryClient();
@@ -345,20 +358,44 @@ export const useCreateProduct = () => {
       // Invalidate and refetch products
       queryClient.invalidateQueries({ queryKey: PRODUCT_QUERY_KEYS.all });
       
+      // Show success message based on product type
+      const isFood = data.category === 'food';
+      const isFree = data.isFree;
+      
+      let description = 'Product listed successfully!';
+      if (isFree) {
+        description = 'Free item listed successfully! Others can now message you to claim it.';
+      } else if (isFood) {
+        description = 'Food listing created successfully! It will expire in 24 hours.';
+      }
+      
       toast({
         title: 'Success',
-        description: 'Product listed successfully!',
+        description: description,
       });
       // Backend returns product with _id (MongoDB) or id
       navigate(`/product/${data._id || data.id}`);
     },
     onError: (error) => {
-      const message = error.response?.data?.message || 'Failed to create product';
-      toast({
-        title: 'Error',
-        description: message,
-        variant: 'destructive',
-      });
+      // Let the component handle specific error messages
+      // Only show generic error if component doesn't handle it
+      const message = error.response?.data?.message || error.message || 'Failed to create product';
+      
+      // Don't show toast here if the error contains specific validation messages
+      // Let the component handle those for better UX
+      if (!message.includes('validation failed') && 
+          !message.includes('expiryDate') && 
+          !message.includes('foodType') && 
+          !message.includes('required')) {
+        toast({
+          title: 'Error',
+          description: message,
+          variant: 'destructive',
+        });
+      }
+      
+      // Always throw the error so component can handle it
+      throw error;
     },
   });
 };
@@ -366,6 +403,7 @@ export const useCreateProduct = () => {
 // Update Product
 export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   return useMutation({
@@ -384,6 +422,9 @@ export const useUpdateProduct = () => {
         title: 'Success',
         description: 'Product updated successfully!',
       });
+      
+      // Navigate to the updated product page
+      navigate(`/product/${variables.productId}`);
     },
     onError: (error) => {
       const message = error.response?.data?.message || 'Failed to update product';
@@ -501,4 +542,14 @@ export const usePrefetchProduct = () => {
   };
 
   return { prefetchProduct };
+};
+
+// Get Product Pricing Info
+export const useProductPricing = (productId) => {
+  return useQuery({
+    queryKey: [...PRODUCT_QUERY_KEYS.detail(productId), 'pricing'],
+    queryFn: () => getProductPricing(productId),
+    enabled: !!productId,
+    staleTime: 5 * 60 * 1000,
+  });
 }; 

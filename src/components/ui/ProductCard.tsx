@@ -18,6 +18,7 @@ interface ProductCardProps {
     views?: number;
     createdAt: string;
     isFavorited?: boolean;
+    isFree?: boolean;
     distance?: string | number;
     listedBy?: {
       _id?: string;
@@ -182,16 +183,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </Badge>
           )}
           
-          {/* Price Badge */}
-          {priceRange && (
+          {/* Price Badge or Free Badge */}
+          {product.isFree ? (
+            <Badge variant="default" className="absolute top-2 right-2 bg-green-600 hover:bg-green-700">
+              FREE
+            </Badge>
+          ) : priceRange ? (
             <Badge variant="default" className="absolute top-2 right-2 bg-green-600 hover:bg-green-700">
               <DollarSign className="h-3 w-3 mr-1" />
               {priceRange}
             </Badge>
-          )}
+          ) : null}
           
           {/* Favorite Button */}
-          {onToggleFavorite && !priceRange && (
+          {onToggleFavorite && !priceRange && !product.isFree && (
             <Button
               size="sm"
               variant="ghost"
@@ -252,12 +257,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </Link>
         
         {/* Price Range Display */}
-        {priceRange && (
+        {product.isFree ? (
+          <div className="flex items-center gap-1 mb-2">
+            <span className="font-bold text-green-600 text-lg">FREE</span>
+            <span className="text-sm text-muted-foreground">• No payment required</span>
+          </div>
+        ) : priceRange ? (
           <div className="flex items-center gap-1 mb-2">
             <DollarSign className="h-4 w-4 text-green-600" />
             <span className="font-semibold text-green-600">{priceRange}</span>
           </div>
-        )}
+        ) : null}
         
         {/* Description */}
         {product.description && (
@@ -302,15 +312,32 @@ const ProductCard: React.FC<ProductCardProps> = ({
           
           {/* Exchange Options */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            {product.exchangePreferences?.barter && (
-              <Badge variant="outline" className="bg-primary/5 text-xs">
-                Barter
+            {product.isFree ? (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                Message to Claim
               </Badge>
-            )}
-            {(product.exchangePreferences?.cash || product.exchangePreferences?.cashOption) && (
-              <Badge variant="outline" className="bg-secondary/5 text-xs">
-                Cash
-              </Badge>
+            ) : (
+              <>
+                {/* Check if both barter and cash are available */}
+                {product.exchangePreferences?.barter && (product.exchangePreferences?.cash || product.exchangePreferences?.cashOption) ? (
+                  <>
+                    <Badge variant="outline" className="bg-primary/5 text-xs">
+                      Barter
+                    </Badge>
+                    <Badge variant="outline" className="bg-secondary/5 text-xs">
+                      Cash
+                    </Badge>
+                  </>
+                ) : (product.exchangePreferences?.cash || product.exchangePreferences?.cashOption) ? (
+                  <Badge variant="outline" className="bg-secondary/5 text-xs">
+                    Cash Only
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                    Barter Only
+                  </Badge>
+                )}
+              </>
             )}
           </div>
         </div>

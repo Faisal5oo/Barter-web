@@ -31,6 +31,13 @@ const CATEGORIES = [
   'Free Stuff'
 ] as const;
 
+const FOOD_TYPES = [
+  { value: 'fresh', label: 'Fresh' },
+  { value: 'packaged', label: 'Packaged' },
+  { value: 'cooked', label: 'Cooked' },
+  { value: 'other', label: 'Other' }
+] as const;
+
 const AddProductPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -43,7 +50,18 @@ const AddProductPage = () => {
   const [category, setCategory] = useState<string>('');
   const [images, setImages] = useState<string[]>([]);
 
-  // Condition & Details
+  // Food-specific fields
+  const [foodType, setFoodType] = useState('');
+  const [dietaryInfo, setDietaryInfo] = useState({
+    vegetarian: false,
+    vegan: false,
+    glutenFree: false,
+    containsNuts: false,
+    halal: false,
+    kosher: false
+  });
+
+  // Condition & Details (not applicable for food)
   const [condition, setCondition] = useState('');
   const [age, setAge] = useState('');
   const [warranty, setWarranty] = useState('');
@@ -57,13 +75,19 @@ const AddProductPage = () => {
   const [notInterestedIn, setNotInterestedIn] = useState<string[]>([]);
   const [newNotInterestedItem, setNewNotInterestedItem] = useState('');
   const [cashOption, setCashOption] = useState(false);
-  const [willingToAddCash, setWillingToAddCash] = useState(false);
   const [exchangeNotes, setExchangeNotes] = useState('');
+  
+  // Free product option
+  const [isFree, setIsFree] = useState(false);
+  
+  // Cash offers settings
+  const [acceptCashOffers, setAcceptCashOffers] = useState(false);
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [fixedPrice, setFixedPrice] = useState('');
   
   // Pricing
   const [price, setPrice] = useState('');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
 
   // Location & Shipping
   const [location, setLocation] = useState('');
@@ -80,6 +104,9 @@ const AddProductPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
   const progress = (currentStep / totalSteps) * 100;
+
+  // Check if current category is food
+  const isFoodCategory = category === 'Food & Grocery';
 
   const handleAddPreferredItem = () => {
     if (newPreferredItem && !preferredItems.includes(newPreferredItem)) {
@@ -100,6 +127,41 @@ const AddProductPage = () => {
       setPreferredLocations([...preferredLocations, newPreferredLocation]);
       setNewPreferredLocation('');
     }
+  };
+
+  const handleCategoryChange = (newCategory: string) => {
+    setCategory(newCategory);
+    
+    // Reset form fields when switching to/from food category
+    if (newCategory === 'Food & Grocery') {
+      // Reset non-food fields
+      setCondition('');
+      setAge('');
+      setWarranty('');
+      setBoxAccessories('');
+      setScreenCondition('');
+      setBodyCondition('');
+      // Set food-specific defaults
+      if (!foodType) setFoodType('fresh');
+    } else {
+      // Reset food-specific fields
+      setFoodType('');
+      setDietaryInfo({
+        vegetarian: false,
+        vegan: false,
+        glutenFree: false,
+        containsNuts: false,
+        halal: false,
+        kosher: false
+      });
+    }
+  };
+
+  const handleDietaryInfoChange = (key: keyof typeof dietaryInfo, value: boolean) => {
+    setDietaryInfo(prev => ({
+      ...prev,
+      [key]: value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -123,29 +185,21 @@ const AddProductPage = () => {
       return;
     }
 
-    const productData = {
+    // Food-specific validation
+    if (isFoodCategory && !foodType) {
+      toast({
+        title: 'Food Type Required',
+        description: 'Please select a food type for food listings',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    let productData: any = {
       title,
       description,
-      category,
+      category: isFoodCategory ? 'food' : category, // Backend expects 'food' not 'Food & Grocery'
       images,
-      specs: {},
-      condition,
-      age,
-      warranty,
-      boxAccessories,
-      screenCondition,
-      bodyCondition,
-      exchangePreferences: {
-        preferredItems,
-        notInterestedIn,
-        cashOption,
-        willingToAddCash,
-        estimatedValue: price ? parseFloat(price) : 0,
-        price: price ? parseFloat(price) : undefined,
-        minPrice: minPrice ? parseFloat(minPrice) : undefined,
-        maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
-        notes: exchangeNotes,
-      },
       location,
       latitude,
       longitude,
@@ -156,13 +210,77 @@ const AddProductPage = () => {
         buyerPaysShipping,
         preferredLocations,
       },
+      exchangePreferences: {
+        preferredItems,
+        notInterestedIn,
+        cashOption: isFree ? false : cashOption,
+        estimatedValue: isFree ? 0 : (price ? parseFloat(price) : 0),
+        price: isFree ? 0 : (price ? parseFloat(price) : undefined),
+        minPrice: isFree ? 0 : (minPrice ? parseFloat(minPrice) : undefined),
+        maxPrice: isFree ? 0 : (maxPrice ? parseFloat(maxPrice) : undefined),
+        notes: exchangeNotes,
+        acceptCashOffers: isFree ? false : acceptCashOffers,
+        pricingInfo: isFree ? {} : {
+          minPrice: minPrice ? parseFloat(minPrice) : 0,
+          maxPrice: maxPrice ? parseFloat(maxPrice) : 0,
+          fixedPrice: fixedPrice ? parseFloat(fixedPrice) : 0,
+          currency: 'PKR'
+        }
+      },
+      isFree: isFree,
     };
+
+    if (isFoodCategory) {
+      // Add food-specific fields
+      productData.foodType = foodType;
+      productData.dietaryInfo = dietaryInfo;
+      
+      // Set expiry date to 24 hours from now for food products
+      const expiryDate = new Date();
+      expiryDate.setHours(expiryDate.getHours() + 24);
+      productData.expiryDate = expiryDate.toISOString();
+    } else {
+      // Add regular product fields
+      productData.specs = {};
+      productData.condition = condition;
+      productData.age = age;
+      productData.warranty = warranty;
+      productData.boxAccessories = boxAccessories;
+      productData.screenCondition = screenCondition;
+      productData.bodyCondition = bodyCondition;
+    }
 
     try {
       await createProduct.mutateAsync(productData);
       // Success handling is done in the hook
     } catch (error) {
-      // Error handling is done in the hook
+      // Enhanced error handling for food products and validation errors
+      console.error('Product creation error:', error);
+      
+      let errorMessage = 'Failed to create product. Please try again.';
+      
+      // Check if it's a validation error
+      if (error?.message?.includes('validation failed')) {
+        if (isFoodCategory) {
+          errorMessage = 'Food listing validation failed. Please check all required fields and try again.';
+        } else {
+          errorMessage = 'Product validation failed. Please check all required fields and try again.';
+        }
+      } else if (error?.message?.includes('expiryDate')) {
+        errorMessage = 'Food listing requires expiry date. Please try again.';
+      } else if (error?.message?.includes('foodType')) {
+        errorMessage = 'Please select a valid food type for your listing.';
+      } else if (error?.message?.includes('location')) {
+        errorMessage = 'Location information is required. Please provide your location.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: isFoodCategory ? 'Food Listing Error' : 'Product Listing Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -184,7 +302,15 @@ const AddProductPage = () => {
             </Button>
             <h1 className="text-3xl font-bold tracking-tight">List a New Item</h1>
             <p className="text-muted-foreground mt-2">
-              Create a detailed listing to attract potential buyers and traders
+              {isFree 
+                ? "Creating a free listing - others will message you to claim this item"
+                : "Create a detailed listing to attract potential buyers and traders"
+              }
+              {isFoodCategory && !isFree && (
+                <span className="block text-amber-600 font-medium mt-1">
+                  ⏰ Food listings automatically expire after 24 hours
+                </span>
+              )}
             </p>
           </div>
 
@@ -201,7 +327,15 @@ const AddProductPage = () => {
             <CardHeader>
               <CardTitle>Create Your Listing</CardTitle>
               <CardDescription>
-                Fill in the details below to create your listing. Fields marked with * are required.
+                {isFree 
+                  ? "Fill in the details below to create your free listing. Others will message you to claim the item."
+                  : "Fill in the details below to create your listing. Fields marked with * are required."
+                }
+                {isFoodCategory && !isFree && (
+                  <span className="block text-amber-600 mt-1">
+                    Food listings are automatically removed after 24 hours.
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -220,7 +354,9 @@ const AddProductPage = () => {
                 >
                   <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                    <TabsTrigger value="condition">Condition</TabsTrigger>
+                    <TabsTrigger value="condition">
+                      {isFoodCategory ? 'Food Details' : 'Condition'}
+                    </TabsTrigger>
                     <TabsTrigger value="exchange">Exchange</TabsTrigger>
                     <TabsTrigger value="shipping">Shipping</TabsTrigger>
                   </TabsList>
@@ -232,7 +368,7 @@ const AddProductPage = () => {
                         id="title"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Enter a descriptive title"
+                        placeholder={isFoodCategory ? "e.g., Fresh Homemade Pizza" : "Enter a descriptive title"}
                         required
                       />
                     </div>
@@ -243,14 +379,14 @@ const AddProductPage = () => {
                         id="description"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Describe your item in detail"
+                        placeholder={isFoodCategory ? "Describe your food item, ingredients, preparation method..." : "Describe your item in detail"}
                         rows={4}
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="category">Category *</Label>
-                      <Select value={category} onValueChange={setCategory} required>
+                      <Select value={category} onValueChange={handleCategoryChange} required>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
@@ -272,244 +408,486 @@ const AddProductPage = () => {
                   </TabsContent>
 
                   <TabsContent value="condition" className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="condition">Condition</Label>
-                      <Input
-                        id="condition"
-                        value={condition}
-                        onChange={(e) => setCondition(e.target.value)}
-                        placeholder="e.g., Like New, Good, Fair"
-                      />
-                    </div>
+                    {isFoodCategory ? (
+                      // Food-specific fields
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="foodType">Food Type *</Label>
+                          <Select value={foodType} onValueChange={setFoodType} required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select food type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {FOOD_TYPES.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                  {type.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="age">Age</Label>
-                      <Input
-                        id="age"
-                        value={age}
-                        onChange={(e) => setAge(e.target.value)}
-                        placeholder="e.g., 2 years old"
-                      />
-                    </div>
+                        <div className="space-y-4">
+                          <Label className="text-base font-medium">Dietary Information</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="vegetarian" className="text-sm">Vegetarian</Label>
+                              <Switch
+                                id="vegetarian"
+                                checked={dietaryInfo.vegetarian}
+                                onCheckedChange={(value) => handleDietaryInfoChange('vegetarian', value)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="vegan" className="text-sm">Vegan</Label>
+                              <Switch
+                                id="vegan"
+                                checked={dietaryInfo.vegan}
+                                onCheckedChange={(value) => handleDietaryInfoChange('vegan', value)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="glutenFree" className="text-sm">Gluten Free</Label>
+                              <Switch
+                                id="glutenFree"
+                                checked={dietaryInfo.glutenFree}
+                                onCheckedChange={(value) => handleDietaryInfoChange('glutenFree', value)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="containsNuts" className="text-sm">Contains Nuts</Label>
+                              <Switch
+                                id="containsNuts"
+                                checked={dietaryInfo.containsNuts}
+                                onCheckedChange={(value) => handleDietaryInfoChange('containsNuts', value)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="halal" className="text-sm">Halal</Label>
+                              <Switch
+                                id="halal"
+                                checked={dietaryInfo.halal}
+                                onCheckedChange={(value) => handleDietaryInfoChange('halal', value)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="kosher" className="text-sm">Kosher</Label>
+                              <Switch
+                                id="kosher"
+                                checked={dietaryInfo.kosher}
+                                onCheckedChange={(value) => handleDietaryInfoChange('kosher', value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="warranty">Warranty</Label>
-                      <Input
-                        id="warranty"
-                        value={warranty}
-                        onChange={(e) => setWarranty(e.target.value)}
-                        placeholder="e.g., 1 year manufacturer warranty"
-                      />
-                    </div>
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                          <div className="flex items-start space-x-2">
+                            <div className="text-amber-600 mt-0.5">⚠️</div>
+                            <div className="text-sm text-amber-700">
+                              <p className="font-medium">Food Safety Notice:</p>
+                              <ul className="mt-1 space-y-1">
+                                <li>• Ensure food is prepared in hygienic conditions</li>
+                                <li>• Food listings expire automatically after 24 hours</li>
+                                <li>• Exchange should happen as soon as possible for freshness</li>
+                              </ul>
+                              <div className="mt-2 p-2 bg-amber-100 rounded text-xs">
+                                <strong>Expiry Time:</strong> Your listing will expire at{' '}
+                                {new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      // Regular product condition fields
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="condition">Condition</Label>
+                          <Input
+                            id="condition"
+                            value={condition}
+                            onChange={(e) => setCondition(e.target.value)}
+                            placeholder="e.g., Like New, Good, Fair"
+                          />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="boxAccessories">Box & Accessories</Label>
-                      <Input
-                        id="boxAccessories"
-                        value={boxAccessories}
-                        onChange={(e) => setBoxAccessories(e.target.value)}
-                        placeholder="e.g., Original box, charger, manual"
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="age">Age</Label>
+                          <Input
+                            id="age"
+                            value={age}
+                            onChange={(e) => setAge(e.target.value)}
+                            placeholder="e.g., 2 years old"
+                          />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="screenCondition">Screen Condition</Label>
-                      <Input
-                        id="screenCondition"
-                        value={screenCondition}
-                        onChange={(e) => setScreenCondition(e.target.value)}
-                        placeholder="e.g., No scratches, minor wear"
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="warranty">Warranty</Label>
+                          <Input
+                            id="warranty"
+                            value={warranty}
+                            onChange={(e) => setWarranty(e.target.value)}
+                            placeholder="e.g., 1 year manufacturer warranty"
+                          />
+                        </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="bodyCondition">Body Condition</Label>
-                      <Input
-                        id="bodyCondition"
-                        value={bodyCondition}
-                        onChange={(e) => setBodyCondition(e.target.value)}
-                        placeholder="e.g., Minor scratches, dents"
-                      />
-                    </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="boxAccessories">Box & Accessories</Label>
+                          <Input
+                            id="boxAccessories"
+                            value={boxAccessories}
+                            onChange={(e) => setBoxAccessories(e.target.value)}
+                            placeholder="e.g., Original box, charger, manual"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="screenCondition">Screen Condition</Label>
+                          <Input
+                            id="screenCondition"
+                            value={screenCondition}
+                            onChange={(e) => setScreenCondition(e.target.value)}
+                            placeholder="e.g., No scratches, minor wear"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="bodyCondition">Body Condition</Label>
+                          <Input
+                            id="bodyCondition"
+                            value={bodyCondition}
+                            onChange={(e) => setBodyCondition(e.target.value)}
+                            placeholder="e.g., Minor scratches, dents"
+                          />
+                        </div>
+                      </>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="exchange" className="space-y-6">
+                    {/* Free Product Option */}
                     <div className="space-y-4">
-                      <Label>Preferred Items</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={newPreferredItem}
-                          onChange={(e) => setNewPreferredItem(e.target.value)}
-                          placeholder="Add preferred item"
-                        />
-                        <Button type="button" onClick={handleAddPreferredItem}>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {preferredItems.map((item) => (
-                          <div
-                            key={item}
-                            className="bg-secondary px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                          >
-                            {item}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-4 w-4"
-                              onClick={() => setPreferredItems(preferredItems.filter(i => i !== item))}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <Label>Not Interested In</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={newNotInterestedItem}
-                          onChange={(e) => setNewNotInterestedItem(e.target.value)}
-                          placeholder="Add item you're not interested in"
-                        />
-                        <Button type="button" onClick={handleAddNotInterestedItem}>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {notInterestedIn.map((item) => (
-                          <div
-                            key={item}
-                            className="bg-secondary px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                          >
-                            {item}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-4 w-4"
-                              onClick={() => setNotInterestedIn(notInterestedIn.filter(i => i !== item))}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="cashOption">Accept Cash Offers</Label>
+                      <div className="flex items-center justify-between p-4 border rounded-lg bg-green-50 border-green-200">
+                        <div>
+                          <Label htmlFor="freeOption" className="text-base font-medium text-green-800">
+                            List as Free Item
+                          </Label>
+                          <p className="text-sm text-green-600 mt-1">
+                            Mark this item as free for others to claim (no bartering required)
+                          </p>
+                        </div>
                         <Switch
-                          id="cashOption"
-                          checked={cashOption}
-                          onCheckedChange={setCashOption}
+                          id="freeOption"
+                          checked={isFree}
+                          onCheckedChange={setIsFree}
                         />
                       </div>
 
-                      {/* Price Range Section */}
-                      {cashOption && (
-                        <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-                          <Label className="text-base font-medium">Pricing Information</Label>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="min-price">Minimum Price (PKR)</Label>
-                              <div className="relative">
-                                <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">PKR</span>
+                      {isFree && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start space-x-2">
+                            <div className="text-blue-600 mt-0.5">💝</div>
+                            <div className="text-sm text-blue-700">
+                              <p className="font-medium">Free Item Guidelines:</p>
+                              <ul className="mt-1 space-y-1">
+                                <li>• First come, first served basis</li>
+                                <li>• Others will message you to claim the item</li>
+                                <li>• No bartering or cash exchange allowed</li>
+                                <li>• Please be respectful of pickup arrangements</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {!isFree && (
+                      <>
+                        <div className="space-y-4">
+                          <Label>Preferred Items</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              value={newPreferredItem}
+                              onChange={(e) => setNewPreferredItem(e.target.value)}
+                              placeholder={isFoodCategory ? "e.g., Other food items, Kitchen appliances" : "Add preferred item"}
+                            />
+                            <Button type="button" onClick={handleAddPreferredItem}>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {preferredItems.map((item) => (
+                              <div
+                                key={item}
+                                className="bg-secondary px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                              >
+                                {item}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4"
+                                  onClick={() => setPreferredItems(preferredItems.filter(i => i !== item))}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <Label>Not Interested In</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              value={newNotInterestedItem}
+                              onChange={(e) => setNewNotInterestedItem(e.target.value)}
+                              placeholder={isFoodCategory ? "e.g., Electronics, Clothing" : "Add item you're not interested in"}
+                            />
+                            <Button type="button" onClick={handleAddNotInterestedItem}>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {notInterestedIn.map((item) => (
+                              <div
+                                key={item}
+                                className="bg-secondary px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                              >
+                                {item}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4"
+                                  onClick={() => setNotInterestedIn(notInterestedIn.filter(i => i !== item))}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="cashOption">Accept Cash Offers</Label>
+                            <Switch
+                              id="cashOption"
+                              checked={cashOption}
+                              onCheckedChange={setCashOption}
+                            />
+                          </div>
+
+                          {/* Price Range Section */}
+                          {cashOption && (
+                            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                              <Label className="text-base font-medium">Pricing Information</Label>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="min-price">Minimum Price (PKR)</Label>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">PKR</span>
+                                    <Input
+                                      id="min-price"
+                                      type="text"
+                                      inputMode="decimal"
+                                      placeholder="0"
+                                      className="pl-12"
+                                      value={minPrice}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (/^(\d*\.?\d{0,2})$/.test(value) || value === '') {
+                                          setMinPrice(value);
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <Label htmlFor="max-price">Maximum Price (PKR)</Label>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">PKR</span>
+                                    <Input
+                                      id="max-price"
+                                      type="text"
+                                      inputMode="decimal"
+                                      placeholder="0"
+                                      className="pl-12"
+                                      value={maxPrice}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (/^(\d*\.?\d{0,2})$/.test(value) || value === '') {
+                                          setMaxPrice(value);
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="fixed-price">Or set a fixed price (PKR)</Label>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">PKR</span>
+                                  <Input
+                                    id="fixed-price"
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="0"
+                                    className="pl-12"
+                                    value={price}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      if (/^(\d*\.?\d{0,2})$/.test(value) || value === '') {
+                                        setPrice(value);
+                                      }
+                                    }}
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Leave empty if you specified a price range above
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="space-y-2">
+                            <Label htmlFor="exchangeNotes">Exchange Notes</Label>
+                            <Textarea
+                              id="exchangeNotes"
+                              value={exchangeNotes}
+                              onChange={(e) => setExchangeNotes(e.target.value)}
+                              placeholder={isFoodCategory ? "e.g., Looking for healthy food exchanges, prefer organic items..." : "Any additional notes about exchange preferences"}
+                              rows={3}
+                            />
+                          </div>
+
+                          {isFoodCategory && (
+                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className="flex items-start space-x-2">
+                                <div className="text-blue-600 mt-0.5">💡</div>
+                                <div className="text-sm text-blue-700">
+                                  <p className="font-medium">Food Exchange Tips:</p>
+                                  <ul className="mt-1 space-y-1">
+                                    <li>• Consider equal portion sizes when exchanging</li>
+                                    <li>• Specify dietary preferences clearly</li>
+                                    <li>• Quick exchanges ensure freshness</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Cash Offers Settings */}
+                    {!isFree && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                          <div>
+                            <Label htmlFor="acceptCashOffers" className="text-base font-medium">
+                              Accept Cash Offers
+                            </Label>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Allow buyers to make cash offers for your item
+                            </p>
+                          </div>
+                          <Switch
+                            id="acceptCashOffers"
+                            checked={acceptCashOffers}
+                            onCheckedChange={setAcceptCashOffers}
+                          />
+                        </div>
+
+                        {acceptCashOffers && (
+                          <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                            <h4 className="font-medium">Pricing Information</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Set your preferred price range or fixed price for cash offers
+                            </p>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="minPrice">Minimum Price (PKR)</Label>
                                 <Input
-                                  id="min-price"
-                                  type="text"
-                                  inputMode="decimal"
-                                  placeholder="0"
-                                  className="pl-12"
+                                  id="minPrice"
+                                  type="number"
                                   value={minPrice}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (/^(\d*\.?\d{0,2})$/.test(value) || value === '') {
-                                      setMinPrice(value);
-                                    }
-                                  }}
+                                  onChange={(e) => setMinPrice(e.target.value)}
+                                  placeholder="0"
+                                  min="0"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="maxPrice">Maximum Price (PKR)</Label>
+                                <Input
+                                  id="maxPrice"
+                                  type="number"
+                                  value={maxPrice}
+                                  onChange={(e) => setMaxPrice(e.target.value)}
+                                  placeholder="0"
+                                  min="0"
                                 />
                               </div>
                             </div>
                             
                             <div className="space-y-2">
-                              <Label htmlFor="max-price">Maximum Price (PKR)</Label>
-                              <div className="relative">
-                                <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">PKR</span>
-                                <Input
-                                  id="max-price"
-                                  type="text"
-                                  inputMode="decimal"
-                                  placeholder="0"
-                                  className="pl-12"
-                                  value={maxPrice}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (/^(\d*\.?\d{0,2})$/.test(value) || value === '') {
-                                      setMaxPrice(value);
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="fixed-price">Or set a fixed price (PKR)</Label>
-                            <div className="relative">
-                              <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">PKR</span>
+                              <Label htmlFor="fixedPrice">Fixed Price (PKR) - Optional</Label>
                               <Input
-                                id="fixed-price"
-                                type="text"
-                                inputMode="decimal"
-                                placeholder="0"
-                                className="pl-12"
-                                value={price}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  if (/^(\d*\.?\d{0,2})$/.test(value) || value === '') {
-                                    setPrice(value);
-                                  }
-                                }}
+                                id="fixedPrice"
+                                type="number"
+                                value={fixedPrice}
+                                onChange={(e) => setFixedPrice(e.target.value)}
+                                placeholder="Leave empty for negotiable pricing"
+                                min="0"
                               />
+                              <p className="text-xs text-muted-foreground">
+                                If set, buyers will see this as your asking price
+                              </p>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              Leave empty if you specified a price range above
-                            </p>
                           </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="willingToAddCash">Willing to Add Cash</Label>
-                        <Switch
-                          id="willingToAddCash"
-                          checked={willingToAddCash}
-                          onCheckedChange={setWillingToAddCash}
-                        />
+                        )}
                       </div>
+                    )}
 
+                    {isFree && (
                       <div className="space-y-2">
-                        <Label htmlFor="exchangeNotes">Exchange Notes</Label>
+                        <Label htmlFor="exchangeNotes">Additional Notes</Label>
                         <Textarea
                           id="exchangeNotes"
                           value={exchangeNotes}
                           onChange={(e) => setExchangeNotes(e.target.value)}
-                          placeholder="Any additional notes about exchange preferences"
+                          placeholder="e.g., First come first served, pickup instructions, condition details..."
                           rows={3}
                         />
                       </div>
-                    </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="shipping" className="space-y-6">
+                    {isFoodCategory && (
+                      <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg mb-6">
+                        <div className="flex items-start space-x-2">
+                          <div className="text-orange-600 mt-0.5">🍕</div>
+                          <div className="text-sm text-orange-700">
+                            <p className="font-medium">Food Delivery Considerations:</p>
+                            <ul className="mt-1 space-y-1">
+                              <li>• In-person pickup is recommended for food safety</li>
+                              <li>• Keep delivery distance short to maintain freshness</li>
+                              <li>• Consider temperature-sensitive items</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <ProductLocation
                       location={location}
                       setLocation={setLocation}
@@ -538,8 +916,13 @@ const AddProductPage = () => {
                             value={withinMiles}
                             onChange={(e) => setWithinMiles(Number(e.target.value))}
                             min={1}
-                            max={100}
+                            max={isFoodCategory ? 25 : 100}
                           />
+                          {isFoodCategory && (
+                            <p className="text-xs text-amber-600">
+                              Recommended: Keep within 25 miles for food freshness
+                            </p>
+                          )}
                         </div>
                       )}
 
@@ -551,6 +934,14 @@ const AddProductPage = () => {
                           onCheckedChange={setCanShip}
                         />
                       </div>
+
+                      {isFoodCategory && canShip && (
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm text-yellow-700">
+                            ⚠️ <strong>Note:</strong> Shipping food items requires proper packaging and may affect freshness. Consider local pickup instead.
+                          </p>
+                        </div>
+                      )}
 
                       {canShip && (
                         <div className="flex items-center justify-between">
@@ -569,7 +960,7 @@ const AddProductPage = () => {
                           <Input
                             value={newPreferredLocation}
                             onChange={(e) => setNewPreferredLocation(e.target.value)}
-                            placeholder="Add preferred location"
+                            placeholder={isFoodCategory ? "e.g., Central Park, Coffee shops, Markets" : "Add preferred location"}
                           />
                           <Button type="button" onClick={handleAddPreferredLocation}>
                             <Plus className="h-4 w-4 mr-2" />
@@ -610,8 +1001,15 @@ const AddProductPage = () => {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" size="lg">
-                    List Item
+                  <Button type="submit" size="lg" disabled={createProduct.isPending}>
+                    {createProduct.isPending 
+                      ? 'Creating...' 
+                      : isFree 
+                        ? 'List Free Item' 
+                        : isFoodCategory 
+                          ? 'List Food Item' 
+                          : 'List Item'
+                    }
                   </Button>
                 </div>
               </form>

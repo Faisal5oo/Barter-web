@@ -360,25 +360,25 @@ const NearbyProductsPage = () => {
         {!isLoading && !isLocationLoading && !error && nearbyData && (
           <>
             {/* Location Tester - Remove this in production */}
-            <LocationTester 
+            {/* <LocationTester 
               userLocation={location}
               onLocationChange={setManualLocation}
-            />
+            /> */}
 
             {/* API Tester - Remove this in production */}
-            <ApiTester userLocation={location} />
+            {/* <ApiTester userLocation={location} /> */}
 
             {/* Distance Validator - Remove this in production */}
-            <DistanceValidator 
+            {/* <DistanceValidator 
               userLocation={location} 
               products={nearbyData.products || []} 
-            />
+            /> */}
 
             {/* Debug Component - Remove this in production */}
-            <ProductDebugInfo 
+            {/* <ProductDebugInfo 
               products={nearbyData.products || []} 
               userLocation={location}
-            />
+            /> */}
 
             {/* Leaflet Map */}
             <div className="mb-8">

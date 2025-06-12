@@ -24,7 +24,7 @@ const categories = [
   { value: "Vehicles", label: "Vehicles" },
   { value: "Books", label: "Books" },
   { value: "Collectibles", label: "Collectibles" },
-  { value: "Music", label: "Music" },
+ 
 ];
 
 // Sample condition options

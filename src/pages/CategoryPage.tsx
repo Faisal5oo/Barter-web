@@ -36,21 +36,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
-// Sample condition options
-const conditionOptions = [
-  { label: "Brand New", value: "new" },
-  { label: "Like New", value: "likeNew" },
-  { label: "Good", value: "good" },
-  { label: "Fair", value: "fair" },
-  { label: "For Parts", value: "forParts" }
-];
-
 // Sample exchange options
 const exchangeOptions = [
+  { label: "All Exchange Types", value: "all" },
   { label: "Accepts Barter Only", value: "barter" },
   { label: "Accepts Cash Only", value: "cash" },
   { label: "Accepts Both", value: "both" }
@@ -62,14 +53,52 @@ const CategoryPage = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortOption, setSortOption] = useState<string>("newest");
   
+  // Filter states
+  const [exchangeType, setExchangeType] = useState<"all" | "barter" | "cash" | "both">("all");
+  const [distanceFilter, setDistanceFilter] = useState<string>("10");
+  
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+  };
+
+  const handleExchangeTypeChange = (value: string) => {
+    setExchangeType(value as "all" | "barter" | "cash" | "both");
+  };
+
+  const handleDistanceChange = (value: string) => {
+    setDistanceFilter(value);
+  };
+
+  const resetFilters = () => {
+    setExchangeType("all");
+    setDistanceFilter("10");
+    setSearchQuery("");
   };
 
   // Format category name for display (Electronics to Electronics, mobile-phones to Mobile Phones)
   const formattedCategoryName = categoryName
     ? categoryName.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
     : '';
+
+  // Map URL category names to backend category names
+  const getCategoryForAPI = (urlCategory: string | undefined) => {
+    if (!urlCategory) return '';
+    
+    const categoryMap: { [key: string]: string } = {
+      'electronics': 'Electronics',
+      'furniture': 'Furniture', 
+      'clothing': 'Clothing',
+      'gaming': 'Gaming',
+      'sports': 'Sports',
+      'vehicles': 'Vehicles',
+      'food-grocery': 'food', // Backend expects 'food' for food category
+      'free-stuff': 'Free Stuff'
+    };
+    
+    return categoryMap[urlCategory] || urlCategory;
+  };
+
+  const apiCategory = getCategoryForAPI(categoryName);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -134,24 +163,10 @@ const CategoryPage = () => {
                 
                 <div className="space-y-4">
                   <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="condition">
-                      <AccordionTrigger>Condition</AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-2">
-                          {conditionOptions.map((option) => (
-                            <div key={option.value} className="flex items-center gap-2">
-                              <Checkbox id={`mobile-condition-${option.value}`} />
-                              <Label htmlFor={`mobile-condition-${option.value}`}>{option.label}</Label>
-                            </div>
-                          ))}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                    
                     <AccordionItem value="exchange">
                       <AccordionTrigger>Exchange Options</AccordionTrigger>
                       <AccordionContent>
-                        <RadioGroup defaultValue="both">
+                        <RadioGroup value={exchangeType} onValueChange={handleExchangeTypeChange}>
                           {exchangeOptions.map((option) => (
                             <div key={option.value} className="flex items-center gap-2">
                               <RadioGroupItem id={`mobile-exchange-${option.value}`} value={option.value} />
@@ -165,7 +180,7 @@ const CategoryPage = () => {
                     <AccordionItem value="distance">
                       <AccordionTrigger>Distance</AccordionTrigger>
                       <AccordionContent>
-                        <RadioGroup defaultValue="10">
+                        <RadioGroup value={distanceFilter} onValueChange={handleDistanceChange}>
                           <div className="flex items-center gap-2">
                             <RadioGroupItem id="mobile-distance-5" value="5" />
                             <Label htmlFor="mobile-distance-5">Within 5 miles</Label>
@@ -188,7 +203,7 @@ const CategoryPage = () => {
                   </Accordion>
                   
                   <div className="flex justify-between pt-4 border-t">
-                    <Button variant="outline">Reset</Button>
+                    <Button variant="outline" onClick={resetFilters}>Reset</Button>
                     <Button>Apply Filters</Button>
                   </div>
                 </div>
@@ -248,20 +263,8 @@ const CategoryPage = () => {
                 
                 <div className="space-y-6">
                   <div>
-                    <h4 className="font-medium mb-3">Condition</h4>
-                    <div className="space-y-2">
-                      {conditionOptions.map((option) => (
-                        <div key={option.value} className="flex items-center gap-2">
-                          <Checkbox id={`condition-${option.value}`} />
-                          <Label htmlFor={`condition-${option.value}`}>{option.label}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
                     <h4 className="font-medium mb-3">Exchange Options</h4>
-                    <RadioGroup defaultValue="both">
+                    <RadioGroup value={exchangeType} onValueChange={handleExchangeTypeChange}>
                       {exchangeOptions.map((option) => (
                         <div key={option.value} className="flex items-center gap-2">
                           <RadioGroupItem id={`exchange-${option.value}`} value={option.value} />
@@ -273,7 +276,7 @@ const CategoryPage = () => {
                   
                   <div>
                     <h4 className="font-medium mb-3">Distance</h4>
-                    <RadioGroup defaultValue="10">
+                    <RadioGroup value={distanceFilter} onValueChange={handleDistanceChange}>
                       <div className="flex items-center gap-2">
                         <RadioGroupItem id="distance-5" value="5" />
                         <Label htmlFor="distance-5">Within 5 miles</Label>
@@ -295,7 +298,7 @@ const CategoryPage = () => {
                 </div>
                 
                 <div className="flex justify-between pt-4 mt-6 border-t">
-                  <Button variant="outline">Reset</Button>
+                  <Button variant="outline" onClick={resetFilters}>Reset</Button>
                   <Button>Apply</Button>
                 </div>
               </div>
@@ -305,8 +308,10 @@ const CategoryPage = () => {
           {/* Products grid */}
           <div className="lg:col-span-3">
             <ProductGrid 
-              category={categoryName || ''}
+              category={apiCategory}
               searchQuery={searchQuery}
+              exchangeType={exchangeType}
+              itemsPerPage={12}
             />
           </div>
         </div>

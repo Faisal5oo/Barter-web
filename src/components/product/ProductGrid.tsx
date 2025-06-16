@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import ProductCard, { ProductCardProps } from "./ProductCard";
+import ProductCard from "../ui/ProductCard";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { useToggleFavorite, useCheckFavorite } from "@/hooks/useFavorites";
 import { useProducts, useFreeProducts } from "@/hooks/useProducts";
 import { Loader2 } from "lucide-react";
 import {
@@ -72,24 +75,51 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const { user } = useSelector((state: RootState) => state.auth);
+  const toggleFavoriteMutation = useToggleFavorite();
+
+  // Handle favorite toggle
+  const handleToggleFavorite = (productId: string) => {
+    if (!user) return;
+    
+    // Find the current favorite status
+    const product = products.find((p: any) => p._id === productId);
+    const isFavorite = product?.isFavorited || false;
+    
+    toggleFavoriteMutation.mutate({
+      productId,
+      isFavorite
+    });
+  };
+
   // Transform backend data to match ProductCard props
-  const transformProduct = (product: any): ProductCardProps => ({
-    id: product._id || product.id,
+  const transformProduct = (product: any) => ({
+    _id: product._id || product.id,
     title: product.title,
     description: product.description,
-    image: product.images?.[0] || "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?q=80&w=1526&auto=format&fit=crop",
-    condition: product.condition,
     category: product.category,
-    ownerName: product.listedBy?.name || "Unknown User",
-    ownerRating: product.listedBy?.rating || 4.5,
+    condition: product.condition,
+    images: product.images || [],
     location: product.location,
-    allowsCash: product.isFree ? false : (product.exchangePreferences?.cashOption || false),
-    allowsBarter: product.isFree ? false : true, // Free products don't allow barter
-    isFree: product.isFree || false,
     views: product.views,
     createdAt: product.createdAt,
     isFavorited: product.isFavorited,
+    isFree: product.isFree || false,
     distance: product.distance,
+    listedBy: {
+      _id: product.listedBy?._id,
+      name: product.listedBy?.name || "Unknown User",
+      rating: product.listedBy?.rating || 4.5,
+    },
+    exchangePreferences: {
+      barter: product.isFree ? false : true,
+      cash: product.isFree ? false : (product.exchangePreferences?.cashOption || false),
+      cashOption: product.isFree ? false : (product.exchangePreferences?.cashOption || false),
+      estimatedValue: product.exchangePreferences?.estimatedValue,
+      minPrice: product.exchangePreferences?.minPrice,
+      maxPrice: product.exchangePreferences?.maxPrice,
+      price: product.exchangePreferences?.price,
+    },
   });
 
   // Loading state
@@ -155,7 +185,12 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       {/* Product Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {products.map((product: any) => (
-          <ProductCard key={product._id || product.id} {...transformProduct(product)} />
+          <ProductCard 
+            key={product._id || product.id} 
+            product={transformProduct(product)}
+            currentUserId={user?.id}
+            onToggleFavorite={handleToggleFavorite}
+          />
         ))}
 
         {products.length === 0 && (

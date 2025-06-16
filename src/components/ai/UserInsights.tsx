@@ -1,0 +1,207 @@
+import React from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, Brain, RefreshCw, TrendingUp, Star } from 'lucide-react';
+import { useUserInsights } from '@/hooks/useAI';
+import { cn } from '@/lib/utils';
+
+interface UserInsightsProps {
+  className?: string;
+  userId?: string;
+  showTitle?: boolean;
+}
+
+const UserInsights: React.FC<UserInsightsProps> = ({
+  className,
+  userId,
+  showTitle = true,
+}) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const targetUserId = userId || user?.id;
+  
+  const {
+    data: insightsData,
+    isLoading,
+    error,
+    refetch,
+    isRefetching
+  } = useUserInsights(targetUserId);
+
+  if (isLoading) {
+    return (
+      <div className={cn("space-y-4", className)}>
+        {showTitle && (
+          <div className="flex items-center space-x-2">
+            <Brain className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold">Your Trading Insights</h2>
+          </div>
+        )}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-4 w-2/3" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={cn("space-y-4", className)}>
+        {showTitle && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Brain className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-semibold">Your Trading Insights</h2>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+            >
+              <RefreshCw className={cn("h-4 w-4 mr-2", isRefetching && "animate-spin")} />
+              Retry
+            </Button>
+          </div>
+        )}
+        <Card>
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="font-medium mb-2">Unable to Load Insights</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              We couldn't generate your trading insights right now.
+            </p>
+            <Button variant="outline" onClick={() => refetch()}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const insights = insightsData?.insights || "Keep exploring new products and making great exchanges!";
+
+  return (
+    <div className={cn("space-y-4", className)}>
+      {showTitle && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Brain className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold">Your Trading Insights</h2>
+            <Badge variant="secondary" className="text-xs">
+              AI Generated
+            </Badge>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isRefetching}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", isRefetching && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
+      )}
+
+      <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Star className="h-5 w-5 text-yellow-500" />
+            <span>Personalized Trading Analysis</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="relative">
+              <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-primary to-secondary rounded-full" />
+              <div className="pl-6">
+                <p className="text-foreground leading-relaxed">
+                  {insights}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between pt-4 border-t border-border/50">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <Brain className="h-4 w-4" />
+                <span>Generated by AI Assistant</span>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                Personalized
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Quick Tips Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Quick Tips for Better Trading</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2" />
+                Increase Visibility
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Add detailed descriptions and multiple photos to your listings
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm flex items-center">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2" />
+                Build Trust
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Complete trades promptly and maintain good communication
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm flex items-center">
+                <div className="w-2 h-2 bg-purple-500 rounded-full mr-2" />
+                Explore Categories
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Browse different categories to discover new trading opportunities
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm flex items-center">
+                <div className="w-2 h-2 bg-orange-500 rounded-full mr-2" />
+                Fair Pricing
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Research market values to make fair and attractive offers
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default UserInsights; 

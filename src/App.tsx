@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { store } from './store';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { useAuthInit } from './hooks/useAuthInit';
-import Chatbot from './components/chat/Chatbot';
 
 import Index from "./pages/Index";
 import ProductPage from "./pages/ProductPage";
@@ -29,6 +28,8 @@ import HelpPage from "./pages/HelpPage";
 import SafetyPage from "./pages/SafetyPage";
 import ContactPage from "./pages/ContactPage";
 import TermsPage from "./pages/TermsPage";
+import AIDashboard from "./pages/AIDashboard";
+import FavoritesPage from "./pages/FavoritesPage";
 
 const queryClient = new QueryClient();
 
@@ -117,11 +118,25 @@ const App = () => (
                 <EditProductPage />
               </ProtectedRoute>
             } />
+            <Route path="/ai" element={
+              <ProtectedRoute>
+                <AIDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/ai-dashboard" element={
+              <ProtectedRoute>
+                <AIDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/favorites" element={
+              <ProtectedRoute>
+                <FavoritesPage />
+              </ProtectedRoute>
+            } />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <Chatbot />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

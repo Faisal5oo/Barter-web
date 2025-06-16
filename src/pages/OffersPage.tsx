@@ -44,9 +44,19 @@ const OffersPage = () => {
   const cancelOffer = useCancelOffer();
   const stats = useOfferStats();
 
-  const handleAcceptOffer = async (offerId: string) => {
+  const handleAcceptOffer = async (offerId: string, productId?: string, productTitle?: string) => {
     try {
-      await acceptOffer.mutateAsync(offerId);
+      await acceptOffer.mutateAsync({ 
+        offerId, 
+        productId: productId || undefined 
+      });
+      
+      // Send notification about accepted offer
+      if (productTitle) {
+        const { aiNotificationService } = await import('@/services/notificationService');
+        aiNotificationService.sendOfferAcceptedNotification(productTitle, 'barter');
+        aiNotificationService.sendProductTradedNotification(productTitle, true);
+      }
     } catch (error) {
       // Error handling is done in the hook
     }
@@ -256,7 +266,7 @@ const OffersPage = () => {
                     <>
                       <Button 
                         className="flex-1"
-                        onClick={() => handleAcceptOffer(offer._id)}
+                        onClick={() => handleAcceptOffer(offer._id, offer.offeredProduct?._id, offer.offeredProduct?.title)}
                         disabled={acceptOffer.isPending}
                       >
                         {acceptOffer.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

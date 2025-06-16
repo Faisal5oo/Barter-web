@@ -314,8 +314,15 @@ const ProductDetail = () => {
           <div className="mt-8 flex flex-col gap-3">
             <Dialog>
               <DialogTrigger asChild>
-                <Button size="lg" className="w-full">
-                  Make an Offer
+                <Button 
+                  size="lg" 
+                  className="w-full" 
+                  disabled={!product.allowsBarter && !product.allowsCash}
+                >
+                  {!product.allowsBarter && !product.allowsCash 
+                    ? "Contact Seller Directly" 
+                    : "Make an Offer"
+                  }
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
@@ -340,19 +347,45 @@ const ProductDetail = () => {
 
                     <div className="py-4">
                       <RadioGroup
-                        defaultValue="barter"
+                        defaultValue={product.allowsBarter ? "barter" : "cash"}
                         className="flex gap-4 mb-4"
                         onValueChange={(value) => setOfferType(value)}
                       >
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="barter" id="barter" />
-                          <Label htmlFor="barter">Barter</Label>
+                          <RadioGroupItem 
+                            value="barter" 
+                            id="barter" 
+                            disabled={!product.allowsBarter}
+                          />
+                          <Label 
+                            htmlFor="barter" 
+                            className={!product.allowsBarter ? "text-muted-foreground" : ""}
+                          >
+                            Barter {!product.allowsBarter && "(Not Available)"}
+                          </Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="cash" id="cash" />
-                          <Label htmlFor="cash">Cash + Barter</Label>
+                          <RadioGroupItem 
+                            value="cash" 
+                            id="cash" 
+                            disabled={!product.allowsCash}
+                          />
+                          <Label 
+                            htmlFor="cash"
+                            className={!product.allowsCash ? "text-muted-foreground" : ""}
+                          >
+                            Cash + Barter {!product.allowsCash && "(Not Available)"}
+                          </Label>
                         </div>
                       </RadioGroup>
+
+                      {!product.allowsBarter && !product.allowsCash && (
+                        <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                            This item doesn't accept barter or cash offers. Please contact the seller directly.
+                          </p>
+                        </div>
+                      )}
 
                       {offerType === "barter" && (
                         <div className="mb-4">
@@ -462,8 +495,10 @@ const ProductDetail = () => {
                         className="w-full mt-4"
                         onClick={handleOfferSubmit}
                         disabled={
-                          (offerType === "barter" &&
-                            selectedProducts.length === 0) ||
+                          (!product.allowsBarter && !product.allowsCash) ||
+                          (offerType === "barter" && !product.allowsBarter) ||
+                          (offerType === "cash" && !product.allowsCash) ||
+                          (offerType === "barter" && selectedProducts.length === 0) ||
                           offerMessage.trim() === ""
                         }
                       >

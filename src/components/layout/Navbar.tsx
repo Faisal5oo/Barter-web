@@ -1,9 +1,10 @@
-import { Bell, LogOut, Menu, Moon, ShoppingBag, Sun, User, Mail } from "lucide-react";
+import { Bell, LogOut, Menu, Moon, ShoppingBag, Sun, User, Mail, Brain, Heart } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { useLogout } from "@/hooks/useAuthQuery";
+import NotificationCenter from "@/components/ai/NotificationCenter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -71,9 +72,10 @@ const Navbar = () => {
                   <Mail className="h-5 w-5" />
                 </Link>
               </Button>
-
             </div>
           )}
+
+          {isAuthenticated && <NotificationCenter />}
 
           {isAuthenticated ? (
             <DropdownMenu>
@@ -102,6 +104,18 @@ const Navbar = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/messages">Messages</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/favorites" className="flex items-center">
+                    <Heart className="mr-2 h-4 w-4" />
+                    <span>Favorites</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/ai" className="flex items-center">
+                    <Brain className="mr-2 h-4 w-4" />
+                    <span>AI Dashboard</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} disabled={logoutMutation.isPending}>

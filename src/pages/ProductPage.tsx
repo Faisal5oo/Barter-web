@@ -385,7 +385,7 @@ const ProductPage = () => {
                           <div className="flex items-center gap-2">
                             <p>{product.exchangePreferences.cashOption ? 'Yes' : 'No'}</p>
                             {!product.exchangePreferences.cashOption && !pricingInfo?.acceptCashOffers && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                              <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                                 Barter Only
                               </Badge>
                             )}
@@ -553,30 +553,46 @@ const ProductPage = () => {
                     </div>
                   ) : (
                     <>
-                      <Button
-                        size="lg"
-                        className="w-full"
-                        onClick={handleBarter}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        {isAuthenticated 
-                          ? (product?.exchangePreferences?.cashOption || pricingInfo?.acceptCashOffers) 
-                            ? 'Start Barter' 
-                            : 'Make Barter Offer'
-                          : 'Login to Barter'
-                        }
-                      </Button>
-                      
-                      {!isAuthenticated && (
-                        <p className="text-sm text-muted-foreground text-center">
-                          Please login or register to initiate a barter
-                        </p>
-                      )}
-                      
-                      {isAuthenticated && !product?.exchangePreferences?.cashOption && !pricingInfo?.acceptCashOffers && (
-                        <p className="text-sm text-muted-foreground text-center">
-                          💡 This seller only accepts product exchanges (no cash offers)
-                        </p>
+                      {product?.isSold ? (
+                        <div className="text-center p-6 bg-muted rounded-lg">
+                          <div className="text-2xl font-bold text-red-600 mb-2">SOLD</div>
+                          <p className="text-muted-foreground">
+                            This item has been sold and is no longer available for trade.
+                          </p>
+                          {product.soldDate && (
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Sold on {new Date(product.soldDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <Button
+                            size="lg"
+                            className="w-full"
+                            onClick={handleBarter}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            {isAuthenticated 
+                              ? (product?.exchangePreferences?.cashOption || pricingInfo?.acceptCashOffers) 
+                                ? 'Start Barter' 
+                                : 'Make Barter Offer'
+                              : 'Login to Barter'
+                            }
+                          </Button>
+                          
+                          {!isAuthenticated && (
+                            <p className="text-sm text-muted-foreground text-center">
+                              Please login or register to initiate a barter
+                            </p>
+                          )}
+                          
+                          {isAuthenticated && !product?.exchangePreferences?.cashOption && !pricingInfo?.acceptCashOffers && (
+                            <p className="text-sm text-muted-foreground text-center">
+                              💡 This seller only accepts product exchanges (no cash offers)
+                            </p>
+                          )}
+                        </>
                       )}
                     </>
                   )}
@@ -764,16 +780,16 @@ const ProductPage = () => {
               /* Barter Only Notice */
               <div className="space-y-4">
                 <h4 className="text-lg font-semibold">Exchange Type</h4>
-                <Card className="border-blue-200 bg-blue-50">
+                <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-4 h-4 rounded-full bg-blue-600 mt-0.5" />
+                      <div className="w-4 h-4 rounded-full bg-blue-600 dark:bg-blue-400 mt-0.5" />
                       <div className="flex-1">
-                        <h5 className="font-medium text-blue-900">Product Exchange Only</h5>
-                        <p className="text-sm text-blue-700 mt-1">
+                        <h5 className="font-medium text-blue-900 dark:text-blue-100">Product Exchange Only</h5>
+                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                           This seller only accepts product exchanges (barter). Cash offers are not available for this item.
                         </p>
-                        <p className="text-xs text-blue-600 mt-2">
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
                           💡 You can offer one of your listed items in exchange for this product.
                         </p>
                       </div>

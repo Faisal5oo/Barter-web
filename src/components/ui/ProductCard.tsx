@@ -20,6 +20,11 @@ interface ProductCardProps {
     isFavorited?: boolean;
     isFree?: boolean;
     distance?: string | number;
+    isSold?: boolean;
+    soldDate?: string;
+    isTraded?: boolean;
+    tradedDate?: string;
+    status?: 'available' | 'pending' | 'traded' | 'sold';
     listedBy?: {
       _id?: string;
       id?: string;
@@ -60,10 +65,41 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [imageError, setImageError] = useState(false);
 
   // Check if current user is the owner
-  const isOwner = currentUserId && (
-    currentUserId === product.listedBy?._id || 
-    currentUserId === product.listedBy?.id
+  const isOwner = currentUserId && product.listedBy && (
+    (currentUserId === product.listedBy._id) || 
+    (currentUserId === product.listedBy.id)
   );
+
+  // Check if product should be automatically removed (traded/sold for more than 1 day)
+  const shouldAutoRemove = () => {
+    if (product.isSold && product.soldDate) {
+      const soldDate = new Date(product.soldDate);
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      return soldDate < oneDayAgo;
+    }
+    if (product.isTraded && product.tradedDate) {
+      const tradedDate = new Date(product.tradedDate);
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      return tradedDate < oneDayAgo;
+    }
+    return false;
+  };
+
+  // Get product status
+  const getProductStatus = () => {
+    if (product.status) return product.status;
+    if (product.isTraded) return 'traded';
+    if (product.isSold) return 'sold';
+    return 'available';
+  };
+
+  const productStatus = getProductStatus();
+  const isUnavailable = productStatus === 'traded' || productStatus === 'sold';
+
+  // Don't render if product should be auto-removed
+  if (shouldAutoRemove()) {
+    return null;
+  }
 
   // Get category icon
   const getCategoryIcon = () => {
@@ -159,20 +195,42 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const priceRange = formatPriceRange();
 
   return (
-    <Card className={cn("group hover:shadow-lg transition-all duration-200 overflow-hidden", className)}>
-      <Link to={`/product/${product._id}`} onClick={handleCardClick} className="block">
+    <Card className={cn("group hover:shadow-lg transition-all duration-200 overflow-hidden", 
+      isUnavailable ? "opacity-75" : "", 
+      className
+    )}>
+      <Link 
+        to={isUnavailable ? "#" : `/product/${product._id}`} 
+        onClick={isUnavailable ? (e) => e.preventDefault() : handleCardClick} 
+        className="block relative"
+      >
         {/* Image Section */}
         <div className={cn("aspect-[4/3] overflow-hidden relative", imageClassName)}>
           {imageUrl && !imageError ? (
             <img 
               src={imageUrl} 
               alt={product.title} 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              className={cn(
+                "w-full h-full object-cover transition-transform duration-200",
+                isUnavailable ? "grayscale" : "group-hover:scale-105"
+              )}
               onError={() => setImageError(true)}
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
               {getCategoryIcon()}
+            </div>
+          )}
+          
+          {/* Status Overlay */}
+          {isUnavailable && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className={cn(
+                "text-white px-4 py-2 rounded-lg font-bold text-lg transform rotate-12 shadow-lg",
+                productStatus === 'traded' ? "bg-orange-600" : "bg-red-600"
+              )}>
+                {productStatus === 'traded' ? "TRADED" : "SOLD"}
+              </div>
             </div>
           )}
           
@@ -196,11 +254,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
           ) : null}
           
           {/* Favorite Button */}
-          {onToggleFavorite && !priceRange && !product.isFree && (
+          {onToggleFavorite && !showOwnerActions && (
             <Button
               size="sm"
               variant="ghost"
-              className="absolute top-2 right-2 bg-white/80 hover:bg-white h-8 w-8 p-0"
+              className={cn(
+                "absolute h-8 w-8 p-0 bg-background/80 hover:bg-background border border-border/50",
+                priceRange || product.isFree ? "top-12 right-2" : "top-2 right-2"
+              )}
               onClick={handleFavoriteClick}
             >
               <Heart className={cn("h-4 w-4", product.isFavorited ? 'fill-red-500 text-red-500' : '')} />
@@ -214,7 +275,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="bg-white/80 hover:bg-white h-8 w-8 p-0"
+                  className="bg-background/80 hover:bg-background border border-border/50 h-8 w-8 p-0"
                   onClick={handleEditClick}
                 >
                   <Edit className="h-4 w-4" />
@@ -224,7 +285,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="bg-white/80 hover:bg-white h-8 w-8 p-0 text-destructive hover:text-destructive"
+                  className="bg-background/80 hover:bg-background border border-border/50 h-8 w-8 p-0 text-destructive hover:text-destructive"
                   onClick={handleDeleteClick}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -271,7 +332,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         
         {/* Description */}
         {product.description && (
-          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
             {truncateDescription(product.description)}
           </p>
         )}
@@ -283,7 +344,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
         
         {/* Stats Row */}
-        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
           <div className="flex items-center gap-1">
             <Eye className="h-3 w-3" />
             <span>{product.views || 0}</span>
@@ -312,8 +373,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
           
           {/* Exchange Options */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            {product.isFree ? (
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+            {isUnavailable ? (
+              <Badge variant={productStatus === 'traded' ? "default" : "destructive"} 
+                     className={cn("text-xs font-bold", 
+                       productStatus === 'traded' ? "bg-orange-600 hover:bg-orange-700" : ""
+                     )}>
+                {productStatus === 'traded' ? "TRADED" : "SOLD"}
+              </Badge>
+            ) : product.isFree ? (
+              <Badge variant="outline" className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 text-xs">
                 Message to Claim
               </Badge>
             ) : (
@@ -321,19 +389,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 {/* Check if both barter and cash are available */}
                 {product.exchangePreferences?.barter && (product.exchangePreferences?.cash || product.exchangePreferences?.cashOption) ? (
                   <>
-                    <Badge variant="outline" className="bg-primary/5 text-xs">
+                    <Badge variant="outline" className="bg-primary/5 dark:bg-primary/10 text-xs">
                       Barter
                     </Badge>
-                    <Badge variant="outline" className="bg-secondary/5 text-xs">
+                    <Badge variant="outline" className="bg-secondary/5 dark:bg-secondary/10 text-xs">
                       Cash
                     </Badge>
                   </>
                 ) : (product.exchangePreferences?.cash || product.exchangePreferences?.cashOption) ? (
-                  <Badge variant="outline" className="bg-secondary/5 text-xs">
+                  <Badge variant="outline" className="bg-secondary/5 dark:bg-secondary/10 text-xs">
                     Cash Only
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                  <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-xs">
                     Barter Only
                   </Badge>
                 )}

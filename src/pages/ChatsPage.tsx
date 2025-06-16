@@ -62,11 +62,11 @@ const ChatsPage = () => {
 
   const ProductImageInMessage = ({ product }: { product: any }) => {
     const [imageError, setImageError] = useState(false);
-    const imageUrl = product?.images?.[0];
+    const imageUrl = product?.images?.[0] || product?.image;
     
     if (!imageUrl || imageError) {
       return (
-        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+        <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
           {getCategoryIcon(product?.category)}
         </div>
       );
@@ -76,7 +76,7 @@ const ChatsPage = () => {
       <img
         src={imageUrl}
         alt={product?.title || 'Product'}
-        className="w-12 h-12 rounded-lg object-cover"
+        className="w-16 h-16 rounded-lg object-cover"
         onError={() => setImageError(true)}
       />
     );
@@ -144,30 +144,40 @@ const ChatsPage = () => {
             </div>
             
             {offer.offeredProduct && (
-              <div>
-                <p className="text-sm font-medium mb-2">Offered Item:</p>
-                <div className="flex items-center gap-3">
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+                <p className="text-sm font-medium mb-3 text-blue-800 dark:text-blue-200">Offered Item:</p>
+                <div className="flex items-center gap-4">
                   <ProductImageInMessage product={offer.offeredProduct} />
-                  <div>
-                    <p className="text-sm font-medium">{offer.offeredProduct.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {offer.offeredProduct.condition} • {offer.offeredProduct.category}
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">{offer.offeredProduct.title || 'Untitled Product'}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {offer.offeredProduct.condition || 'Good'} • {offer.offeredProduct.category || 'General'}
                     </p>
+                    {offer.offeredProduct.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {offer.offeredProduct.description}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
             {offer.requestedProduct && (
-              <div>
-                <p className="text-sm font-medium mb-2">For Item:</p>
-                <div className="flex items-center gap-3">
+              <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
+                <p className="text-sm font-medium mb-3 text-green-800 dark:text-green-200">For Item:</p>
+                <div className="flex items-center gap-4">
                   <ProductImageInMessage product={offer.requestedProduct} />
-                  <div>
-                    <p className="text-sm font-medium">{offer.requestedProduct.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {offer.requestedProduct.condition} • {offer.requestedProduct.category}
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">{offer.requestedProduct.title || 'Untitled Product'}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {offer.requestedProduct.condition || 'Good'} • {offer.requestedProduct.category || 'General'}
                     </p>
+                    {offer.requestedProduct.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {offer.requestedProduct.description}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -423,29 +433,43 @@ const ChatsPage = () => {
                     </ScrollArea>
 
                     <div className="border-t p-4">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Type your message..."
-                          value={messageInput}
-                          onChange={(e) => setMessageInput(e.target.value)}
-                          onKeyPress={handleKeyPress}
-                          className="flex-1"
-                          disabled={sendMessageMutation.isPending}
-                        />
-                        <Button 
-                          onClick={handleSendMessage}
-                          disabled={!messageInput.trim() || sendMessageMutation.isPending}
-                        >
-                          {sendMessageMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Send className="h-4 w-4 mr-2" />
-                              Send
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      {selectedChat.offer?.status === 'accepted' ? (
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Type your message..."
+                            value={messageInput}
+                            onChange={(e) => setMessageInput(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            className="flex-1"
+                            disabled={sendMessageMutation.isPending}
+                          />
+                          <Button 
+                            onClick={handleSendMessage}
+                            disabled={!messageInput.trim() || sendMessageMutation.isPending}
+                          >
+                            {sendMessageMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4 mr-2" />
+                                Send
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="bg-muted/50 rounded-lg p-4 text-center">
+                          <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            {selectedChat.offer?.status === 'pending' 
+                              ? 'Messages will be available once the offer is accepted'
+                              : selectedChat.offer?.status === 'rejected'
+                              ? 'This offer was rejected. You can make a new offer to continue the conversation.'
+                              : 'Make an offer to start messaging with this user'
+                            }
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </Card>
                 ) : (

@@ -74,6 +74,26 @@ const acceptOffer = async (offerId) => {
   }
 };
 
+// Mark product as sold
+const markProductAsSold = async (productId) => {
+  try {
+    const response = await axiosInstanceWeb.put(`/products/${productId}/mark-as-sold`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to mark product as sold');
+  }
+};
+
+// Mark product as available
+const markProductAsAvailable = async (productId) => {
+  try {
+    const response = await axiosInstanceWeb.put(`/products/${productId}/mark-as-available`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to mark product as available');
+  }
+};
+
 // Reject offer
 const rejectOffer = async (offerId) => {
   try {
@@ -102,5 +122,7 @@ export {
   getReceivedOffers,
   acceptOffer,
   rejectOffer,
-  cancelOffer
+  cancelOffer,
+  markProductAsSold,
+  markProductAsAvailable
 }; 

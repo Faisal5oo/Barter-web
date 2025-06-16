@@ -124,10 +124,10 @@ const HelpPage = () => {
           <div className="relative max-w-2xl mx-auto">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Search for help articles..."
+              placeholder="Search help articles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-12 text-lg bg-white text-black"
+              className="pl-12 h-12 text-lg bg-background text-foreground border-border"
             />
           </div>
         </div>

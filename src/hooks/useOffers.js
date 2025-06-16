@@ -6,7 +6,9 @@ import {
   getReceivedOffers,
   acceptOffer,
   rejectOffer,
-  cancelOffer
+  cancelOffer,
+  markProductAsSold,
+  markProductAsAvailable
 } from '../services/useOffer';
 
 export const OFFER_QUERY_KEYS = {
@@ -67,13 +69,24 @@ export const useAcceptOffer = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: acceptOffer,
+    mutationFn: async ({ offerId, productId }) => {
+      // Accept the offer
+      const result = await acceptOffer(offerId);
+      
+      // Mark the product as sold
+      if (productId) {
+        await markProductAsSold(productId);
+      }
+      
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: OFFER_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['products'] }); // Invalidate products cache
       
       toast({
         title: 'Success',
-        description: 'Offer accepted successfully!',
+        description: 'Offer accepted successfully! Product has been marked as sold.',
       });
     },
     onError: (error) => {
@@ -158,4 +171,56 @@ export const useOfferStats = () => {
     rejectedReceived: receivedOffers.filter(offer => offer.status === 'rejected').length,
     isLoading: !sentData || !receivedData,
   };
+};
+
+// Mark Product as Sold
+export const useMarkProductAsSold = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: markProductAsSold,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      
+      toast({
+        title: 'Success',
+        description: 'Product marked as sold successfully!',
+      });
+    },
+    onError: (error) => {
+      const message = error.message || 'Failed to mark product as sold';
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      });
+    },
+  });
+};
+
+// Mark Product as Available
+export const useMarkProductAsAvailable = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: markProductAsAvailable,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      
+      toast({
+        title: 'Success',
+        description: 'Product marked as available successfully!',
+      });
+    },
+    onError: (error) => {
+      const message = error.message || 'Failed to mark product as available';
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      });
+    },
+  });
 }; 

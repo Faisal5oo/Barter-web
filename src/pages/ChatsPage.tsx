@@ -16,6 +16,165 @@ import Footer from '@/components/layout/Footer';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useChats, useChatMessages, useSendMessage, useMarkMessageAsRead } from '@/hooks/useChats';
 import { useAcceptOffer, useRejectOffer } from '@/hooks/useOffers';
+import { useProduct } from '@/hooks/useProducts';
+
+// ProductImageInMessage Component
+const ProductImageInMessage = ({ product }: { product: any }) => {
+  const [imageError, setImageError] = useState(false);
+  const imageUrl = product?.images?.[0] || product?.image;
+  
+  const getCategoryIcon = (category: string, size = 'small') => {
+    const categoryLower = category?.toLowerCase() || '';
+    const iconSize = size === 'small' ? 'h-4 w-4' : 'h-6 w-6';
+    
+    if (categoryLower.includes('electronics') || categoryLower.includes('phone') || categoryLower.includes('mobile')) {
+      return <Smartphone className={`${iconSize} text-muted-foreground`} />;
+    }
+    if (categoryLower.includes('computer') || categoryLower.includes('laptop') || categoryLower.includes('monitor')) {
+      return <Monitor className={`${iconSize} text-muted-foreground`} />;
+    }
+    if (categoryLower.includes('vehicle') || categoryLower.includes('car') || categoryLower.includes('bike')) {
+      return <Car className={`${iconSize} text-muted-foreground`} />;
+    }
+    if (categoryLower.includes('furniture') || categoryLower.includes('chair') || categoryLower.includes('table')) {
+      return <Sofa className={`${iconSize} text-muted-foreground`} />;
+    }
+    return <ShoppingBag className={`${iconSize} text-muted-foreground`} />;
+  };
+  
+  if (!imageUrl || imageError) {
+    return (
+      <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+        {getCategoryIcon(product?.category)}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={product?.title || 'Product'}
+      className="w-16 h-16 rounded-lg object-cover"
+      onError={() => setImageError(true)}
+    />
+  );
+};
+
+// OfferMessage Component with TypeScript types
+interface OfferMessageProps {
+  message: {
+    _id: string;
+    sender: {
+      _id: string;
+    };
+    offer: {
+      _id: string;
+      offeredProduct: string;
+      requestedProduct: string;
+      status: string;
+      message?: string;
+    };
+  };
+  user: {
+    id: string;
+  };
+  onAcceptOffer: (offerId: string) => void;
+  onRejectOffer: (offerId: string) => void;
+  acceptOfferMutation: any;
+  rejectOfferMutation: any;
+}
+
+const OfferMessage: React.FC<OfferMessageProps> = ({ 
+  message, 
+  user, 
+  onAcceptOffer, 
+  onRejectOffer, 
+  acceptOfferMutation, 
+  rejectOfferMutation 
+}) => {
+  const offer = message.offer;
+  const isMyMessage = message.sender._id === user?.id;
+  const { data: offeredProduct } = useProduct(offer.offeredProduct);
+  const { data: requestedProduct } = useProduct(offer.requestedProduct);
+
+  return (
+    <Card className="bg-muted/50 mt-2">
+      <CardContent className="p-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Barter Offer</p>
+            <Badge variant={
+              offer.status === 'accepted' ? 'default' :
+              offer.status === 'rejected' ? 'destructive' :
+              offer.status === 'cancelled' ? 'secondary' : 'outline'
+            }>
+              {offer.status}
+            </Badge>
+          </div>
+          
+          {offeredProduct && (
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+              <p className="text-sm font-medium mb-3 text-blue-800 dark:text-blue-200">Offered Item:</p>
+              <div className="flex items-center gap-4">
+                <ProductImageInMessage product={offeredProduct} />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">{offeredProduct.title || 'Untitled Product'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {offeredProduct.condition || 'Good'} • {offeredProduct.category || 'General'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {requestedProduct && (
+            <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg mt-3">
+              <p className="text-sm font-medium mb-3 text-green-800 dark:text-green-200">Requested Item:</p>
+              <div className="flex items-center gap-4">
+                <ProductImageInMessage product={requestedProduct} />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">{requestedProduct.title || 'Untitled Product'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {requestedProduct.condition || 'Good'} • {requestedProduct.category || 'General'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {offer.message && (
+            <div>
+              <p className="text-sm font-medium mb-1">Message:</p>
+              <p className="text-sm text-muted-foreground">{offer.message}</p>
+            </div>
+          )}
+
+          {!isMyMessage && offer.status === 'pending' && (
+            <div className="flex gap-2">
+              <Button 
+                size="sm" 
+                className="flex-1"
+                onClick={() => onAcceptOffer(offer._id)}
+                disabled={acceptOfferMutation.isPending}
+              >
+                {acceptOfferMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Accept'}
+              </Button>
+              <Button 
+                size="sm" 
+                variant="destructive" 
+                className="flex-1"
+                onClick={() => onRejectOffer(offer._id)}
+                disabled={rejectOfferMutation.isPending}
+              >
+                {rejectOfferMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Reject'}
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const ChatsPage = () => {
   const navigate = useNavigate();
@@ -40,47 +199,6 @@ const ChatsPage = () => {
       setSelectedChatId(chats[0]._id);
     }
   }, [chats, selectedChatId]);
-
-  const getCategoryIcon = (category: string, size = 'small') => {
-    const categoryLower = category?.toLowerCase() || '';
-    const iconSize = size === 'small' ? 'h-4 w-4' : 'h-6 w-6';
-    
-    if (categoryLower.includes('electronics') || categoryLower.includes('phone') || categoryLower.includes('mobile')) {
-      return <Smartphone className={`${iconSize} text-muted-foreground`} />;
-    }
-    if (categoryLower.includes('computer') || categoryLower.includes('laptop') || categoryLower.includes('monitor')) {
-      return <Monitor className={`${iconSize} text-muted-foreground`} />;
-    }
-    if (categoryLower.includes('vehicle') || categoryLower.includes('car') || categoryLower.includes('bike')) {
-      return <Car className={`${iconSize} text-muted-foreground`} />;
-    }
-    if (categoryLower.includes('furniture') || categoryLower.includes('chair') || categoryLower.includes('table')) {
-      return <Sofa className={`${iconSize} text-muted-foreground`} />;
-    }
-    return <ShoppingBag className={`${iconSize} text-muted-foreground`} />;
-  };
-
-  const ProductImageInMessage = ({ product }: { product: any }) => {
-    const [imageError, setImageError] = useState(false);
-    const imageUrl = product?.images?.[0] || product?.image;
-    
-    if (!imageUrl || imageError) {
-      return (
-        <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
-          {getCategoryIcon(product?.category)}
-        </div>
-      );
-    }
-
-    return (
-      <img
-        src={imageUrl}
-        alt={product?.title || 'Product'}
-        className="w-16 h-16 rounded-lg object-cover"
-        onError={() => setImageError(true)}
-      />
-    );
-  };
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedChatId) return;
@@ -108,7 +226,10 @@ const ChatsPage = () => {
 
   const handleAcceptOffer = async (offerId: string) => {
     try {
-      await acceptOfferMutation.mutateAsync(offerId);
+      await acceptOfferMutation.mutateAsync({ 
+        offerId,
+        productId: undefined // We can add product ID later if needed
+      });
     } catch (error) {
       console.error('Failed to accept offer:', error);
     }
@@ -122,114 +243,31 @@ const ChatsPage = () => {
     }
   };
 
-  const renderOfferMessage = (message: any) => {
-    if (!message.offer) return null;
-
-    const offer = message.offer;
-    const isMyMessage = message.sender._id === user?.id;
-
+  const renderMessage = (message) => {
+    if (message.type === 'offer') {
+      return (
+        <OfferMessage
+          key={message._id}
+          message={message}
+          user={user}
+          onAcceptOffer={handleAcceptOffer}
+          onRejectOffer={handleRejectOffer}
+          acceptOfferMutation={acceptOfferMutation}
+          rejectOfferMutation={rejectOfferMutation}
+        />
+      );
+    }
+    
+    // Handle other message types
     return (
-      <Card className="bg-muted/50 mt-2">
-        <CardContent className="p-4">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Barter Offer</p>
-              <Badge variant={
-                offer.status === 'accepted' ? 'default' :
-                offer.status === 'rejected' ? 'destructive' :
-                offer.status === 'cancelled' ? 'secondary' : 'outline'
-              }>
-                {offer.status}
-              </Badge>
-            </div>
-            
-            {offer.offeredProduct && (
-              <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-                <p className="text-sm font-medium mb-3 text-blue-800 dark:text-blue-200">Offered Item:</p>
-                <div className="flex items-center gap-4">
-                  <ProductImageInMessage product={offer.offeredProduct} />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">{offer.offeredProduct.title || 'Untitled Product'}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {offer.offeredProduct.condition || 'Good'} • {offer.offeredProduct.category || 'General'}
-                    </p>
-                    {offer.offeredProduct.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {offer.offeredProduct.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {offer.requestedProduct && (
-              <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
-                <p className="text-sm font-medium mb-3 text-green-800 dark:text-green-200">For Item:</p>
-                <div className="flex items-center gap-4">
-                  <ProductImageInMessage product={offer.requestedProduct} />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">{offer.requestedProduct.title || 'Untitled Product'}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {offer.requestedProduct.condition || 'Good'} • {offer.requestedProduct.category || 'General'}
-                    </p>
-                    {offer.requestedProduct.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {offer.requestedProduct.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Exchange Type Display */}
-            {offer.exchangeType && (
-              <div>
-                <Badge variant="outline" className="text-xs">
-                  {offer.exchangeType === 'barter' && 'Product Exchange'}
-                  {offer.exchangeType === 'barter_plus_cash' && 'Product + Cash'}
-                  {offer.exchangeType === 'cash_only' && 'Cash Only'}
-                </Badge>
-                {offer.cashAmount && (
-                  <span className="text-xs text-muted-foreground ml-2">
-                    {offer.exchangeType === 'cash_only' ? '' : '+ '}PKR {offer.cashAmount.toLocaleString()}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {offer.message && (
-              <div>
-                <p className="text-sm font-medium mb-1">Message:</p>
-                <p className="text-sm text-muted-foreground">{offer.message}</p>
-              </div>
-            )}
-
-            {!isMyMessage && offer.status === 'pending' && (
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => handleAcceptOffer(offer._id)}
-                  disabled={acceptOfferMutation.isPending}
-                >
-                  {acceptOfferMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Accept'}
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="destructive" 
-                  className="flex-1"
-                  onClick={() => handleRejectOffer(offer._id)}
-                  disabled={rejectOfferMutation.isPending}
-                >
-                  {rejectOfferMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Reject'}
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div key={message._id} className={`chat-message ${message.sender._id === user?.id ? 'chat-message-right' : 'chat-message-left'}`}>
+        <div className="message-content">
+          <p>{message.content}</p>
+          <small className="text-muted-foreground">
+            {new Date(message.createdAt).toLocaleTimeString()}
+          </small>
+        </div>
+      </div>
     );
   };
 
@@ -420,11 +458,7 @@ const ChatsPage = () => {
                                   ? 'bg-primary text-primary-foreground' 
                                   : 'bg-muted'
                               } rounded-lg p-4`}>
-                                <p>{message.content}</p>
-                                {message.type === 'offer' && renderOfferMessage(message)}
-                                <p className="text-xs opacity-70 mt-2">
-                                  {new Date(message.createdAt).toLocaleTimeString()}
-                                </p>
+                                {renderMessage(message)}
                               </div>
                             </div>
                           ))}

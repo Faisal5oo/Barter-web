@@ -447,7 +447,7 @@ const EditProductScreen = () => {
 
                     {formData.exchangePreferences.cash && (
                       <TextInput
-                        label="Price ($)"
+                        label="Price (PKR)"
                         value={formData.exchangePreferences.price}
                         onChangeText={(text) => 
                           setFormData(prev => ({
@@ -464,7 +464,7 @@ const EditProductScreen = () => {
 
                     {formData.exchangePreferences.barter && (
                       <TextInput
-                        label="Estimated Value ($) - Optional"
+                        label="Estimated Value (PKR) - Optional"
                         value={formData.exchangePreferences.estimatedValue}
                         onChangeText={(text) => 
                           setFormData(prev => ({

@@ -7,10 +7,12 @@ import { HomeStackNavigator } from './HomeStackNavigator';
 import { BrowseStackNavigator } from './BrowseStackNavigator';
 import { ChatsStackNavigator } from './ChatsStackNavigator';
 import { ProfileStackNavigator } from './ProfileStackNavigator';
+import AddProductScreen from '../screens/product/AddProductScreen';
 
 export type MainTabParamList = {
   HomeStack: undefined;
   BrowseStack: undefined;
+  AddProduct: undefined;
   ChatsStack: undefined;
   ProfileStack: undefined;
 };
@@ -30,6 +32,8 @@ export const MainTabNavigator: React.FC = () => {
             iconName = 'home';
           } else if (route.name === 'BrowseStack') {
             iconName = 'search';
+          } else if (route.name === 'AddProduct') {
+            iconName = 'add-circle';
           } else if (route.name === 'ChatsStack') {
             iconName = 'chat';
           } else if (route.name === 'ProfileStack') {
@@ -58,6 +62,21 @@ export const MainTabNavigator: React.FC = () => {
         name="BrowseStack" 
         component={BrowseStackNavigator}
         options={{ title: 'Browse' }}
+      />
+      <Tab.Screen 
+        name="AddProduct" 
+        component={AddProductScreen}
+        options={{ 
+          title: 'Add Item',
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialIcons 
+              name={focused ? 'add-circle' : 'add-circle-outline'} 
+              size={32} 
+              color={color} 
+              style={{ marginBottom: -3 }}
+            />
+          )
+        }}
       />
       <Tab.Screen 
         name="ChatsStack" 

@@ -23,7 +23,8 @@ import {
   SegmentedButtons,
   ActivityIndicator,
   Menu,
-  Divider
+  Divider,
+  useTheme,
 } from 'react-native-paper';
 import { useSelector } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,6 +33,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService } from '../../services/productService';
 import { theme, spacing, typography } from '../../theme';
 import { RootState } from '../../store';
+import * as Location from 'expo-location';
 
 const { width } = Dimensions.get('window');
 
@@ -63,17 +65,20 @@ const STEPS = [
 const AddProductScreen = () => {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
+  const paperTheme = useTheme();
   const { user } = useSelector((state: RootState) => state.auth);
 
   // Form state
   const [currentStep, setCurrentStep] = useState(0);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState<string>('');
   const [images, setImages] = useState<string[]>([]);
+  const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
 
   // Food-specific fields
   const [foodType, setFoodType] = useState('');
+  const [foodTypeMenuVisible, setFoodTypeMenuVisible] = useState(false);
   const [dietaryInfo, setDietaryInfo] = useState({
     vegetarian: false,
     vegan: false,
@@ -105,16 +110,14 @@ const AddProductScreen = () => {
 
   // Location & shipping
   const [location, setLocation] = useState('');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [inPerson, setInPerson] = useState(true);
   const [withinMiles, setWithinMiles] = useState('10');
   const [canShip, setCanShip] = useState(false);
   const [buyerPaysShipping, setBuyerPaysShipping] = useState(true);
   const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
   const [newPreferredLocation, setNewPreferredLocation] = useState('');
-
-  // UI state
-  const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
-  const [foodTypeMenuVisible, setFoodTypeMenuVisible] = useState(false);
 
   const isFoodCategory = category === 'Food & Grocery';
   const progress = ((currentStep + 1) / STEPS.length) * 100;
@@ -188,64 +191,12 @@ const AddProductScreen = () => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const addPreferredItem = () => {
-    if (newPreferredItem.trim() && !preferredItems.includes(newPreferredItem.trim())) {
-      setPreferredItems(prev => [...prev, newPreferredItem.trim()]);
-      setNewPreferredItem('');
-    }
-  };
-
-  const addNotInterestedItem = () => {
-    if (newNotInterestedItem.trim() && !notInterestedIn.includes(newNotInterestedItem.trim())) {
-      setNotInterestedIn(prev => [...prev, newNotInterestedItem.trim()]);
-      setNewNotInterestedItem('');
-    }
-  };
-
-  const addPreferredLocation = () => {
-    if (newPreferredLocation.trim() && !preferredLocations.includes(newPreferredLocation.trim())) {
-      setPreferredLocations(prev => [...prev, newPreferredLocation.trim()]);
-      setNewPreferredLocation('');
-    }
-  };
-
-  const handleCategoryChange = (newCategory: string) => {
-    setCategory(newCategory);
-    setCategoryMenuVisible(false);
-    
-    if (newCategory === 'Food & Grocery') {
-      setCondition('');
-      setAge('');
-      setWarranty('');
-      setBoxAccessories('');
-      if (!foodType) setFoodType('fresh');
-    } else {
-      setFoodType('');
-      setDietaryInfo({
-        vegetarian: false,
-        vegan: false,
-        glutenFree: false,
-        containsNuts: false,
-        halal: false,
-        kosher: false
-      });
-    }
-  };
-
   const handleSubmit = async () => {
-    // Validation
-    if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a title for your product.');
+    if (!title.trim() || !category || !location.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
-    if (!category) {
-      Alert.alert('Error', 'Please select a category.');
-      return;
-    }
-    if (!location.trim()) {
-      Alert.alert('Error', 'Please enter your location.');
-      return;
-    }
+
     if (isFoodCategory && !foodType) {
       Alert.alert('Error', 'Please select a food type.');
       return;
@@ -257,8 +208,8 @@ const AddProductScreen = () => {
       category: isFoodCategory ? 'food' : category,
       images,
       location: location.trim(),
-      latitude: 0, // Would be set by location service
-      longitude: 0, // Would be set by location service
+      latitude,
+      longitude,
       shippingOptions: {
         inPerson,
         withinMiles: parseInt(withinMiles) || 10,
@@ -297,24 +248,9 @@ const AddProductScreen = () => {
     createProductMutation.mutate(productData);
   };
 
-  const canProceedToNext = () => {
-    switch (currentStep) {
-      case 0: // Basic Info
-        return title.trim() && category && location.trim();
-      case 1: // Condition/Details
-        return isFoodCategory ? foodType : true;
-      case 2: // Exchange
-        return true;
-      case 3: // Shipping
-        return true;
-      default:
-        return false;
-    }
-  };
-
   const renderHeader = () => (
     <LinearGradient
-      colors={['#0ea5e9', '#1e40af']}
+      colors={[paperTheme.colors.primary, paperTheme.colors.primaryContainer]}
       style={styles.header}
     >
       <View style={styles.headerContent}>
@@ -333,7 +269,7 @@ const AddProductScreen = () => {
       </View>
       
       <View style={styles.progressContainer}>
-        <ProgressBar progress={progress / 100} color="#f59e0b" style={styles.progressBar} />
+        <ProgressBar progress={progress / 100} color={paperTheme.colors.secondary} style={styles.progressBar} />
         <Text style={styles.progressText}>
           Step {currentStep + 1} of {STEPS.length} • {Math.round(progress)}% Complete
         </Text>
@@ -344,7 +280,11 @@ const AddProductScreen = () => {
   const renderStepIndicator = () => (
     <View style={styles.stepIndicator}>
       {STEPS.map((step, index) => (
-        <View key={step.id} style={styles.stepItem}>
+        <TouchableOpacity 
+          key={step.id} 
+          style={styles.stepItem}
+          onPress={() => setCurrentStep(index)}
+        >
           <View style={[
             styles.stepCircle,
             index <= currentStep && styles.stepCircleActive,
@@ -353,7 +293,7 @@ const AddProductScreen = () => {
             <Ionicons 
               name={step.icon as any} 
               size={16} 
-              color={index <= currentStep ? '#fff' : theme.colors.outline} 
+              color={index <= currentStep ? '#fff' : paperTheme.colors.outline} 
             />
           </View>
           <Text style={[
@@ -362,7 +302,7 @@ const AddProductScreen = () => {
           ]}>
             {step.title}
           </Text>
-        </View>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -408,14 +348,17 @@ const AddProductScreen = () => {
               <Text style={[styles.menuButtonText, !category && styles.placeholder]}>
                 {category || 'Select a category'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color={theme.colors.onSurface} />
+              <Ionicons name="chevron-down" size={20} color={paperTheme.colors.onSurface} />
             </TouchableOpacity>
           }
         >
           {CATEGORIES.map((cat) => (
             <Menu.Item
               key={cat}
-              onPress={() => handleCategoryChange(cat)}
+              onPress={() => {
+                setCategory(cat);
+                setCategoryMenuVisible(false);
+              }}
               title={cat}
             />
           ))}
@@ -423,54 +366,50 @@ const AddProductScreen = () => {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Location *</Text>
-        <TextInput
-          mode="outlined"
-          value={location}
-          onChangeText={setLocation}
-          placeholder="Enter your city or area"
-          style={styles.textInput}
-        />
-      </View>
-
-      <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Images ({images.length}/10)</Text>
-        <View style={styles.imageSection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.imageContainer}>
-              {images.map((image, index) => (
-                <View key={index} style={styles.imageItem}>
-                  <TouchableOpacity
-                    style={styles.removeImageButton}
-                    onPress={() => removeImage(index)}
-                  >
-                    <Ionicons name="close-circle" size={24} color="#ef4444" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              
-              {images.length < 10 && (
-                <View style={styles.imageActions}>
-                  <TouchableOpacity
-                    style={styles.imageActionButton}
-                    onPress={handleImagePicker}
-                  >
-                    <Ionicons name="images" size={24} color={theme.colors.primary} />
-                    <Text style={styles.imageActionText}>Gallery</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={styles.imageActionButton}
-                    onPress={handleCameraCapture}
-                  >
-                    <Ionicons name="camera" size={24} color={theme.colors.primary} />
-                    <Text style={styles.imageActionText}>Camera</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          </ScrollView>
-        </View>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.imageScrollView}
+        >
+          <View style={styles.imageContainer}>
+            {images.map((image, index) => (
+              <View key={index} style={styles.imageWrapper}>
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => removeImage(index)}
+                >
+                  <Ionicons name="close-circle" size={24} color={paperTheme.colors.error} />
+                </TouchableOpacity>
+                {index === 0 && (
+                  <View style={styles.mainImageBadge}>
+                    <Text style={styles.mainImageText}>Main</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+            
+            {images.length < 10 && (
+              <View style={styles.imageActions}>
+                <TouchableOpacity
+                  style={styles.imageActionButton}
+                  onPress={handleImagePicker}
+                >
+                  <Ionicons name="images" size={24} color={paperTheme.colors.primary} />
+                  <Text style={styles.imageActionText}>Gallery</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.imageActionButton}
+                  onPress={handleCameraCapture}
+                >
+                  <Ionicons name="camera" size={24} color={paperTheme.colors.primary} />
+                  <Text style={styles.imageActionText}>Camera</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -480,7 +419,7 @@ const AddProductScreen = () => {
       <Text style={styles.stepTitle}>
         {isFoodCategory ? 'Food Details' : 'Condition & Details'}
       </Text>
-      
+
       {isFoodCategory ? (
         <>
           <View style={styles.inputGroup}>
@@ -494,9 +433,9 @@ const AddProductScreen = () => {
                   onPress={() => setFoodTypeMenuVisible(true)}
                 >
                   <Text style={[styles.menuButtonText, !foodType && styles.placeholder]}>
-                    {FOOD_TYPES.find(t => t.value === foodType)?.label || 'Select food type'}
+                    {foodType ? FOOD_TYPES.find(t => t.value === foodType)?.label : 'Select food type'}
                   </Text>
-                  <Ionicons name="chevron-down" size={20} color={theme.colors.onSurface} />
+                  <Ionicons name="chevron-down" size={20} color={paperTheme.colors.onSurface} />
                 </TouchableOpacity>
               }
             >
@@ -513,13 +452,13 @@ const AddProductScreen = () => {
             </Menu>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Dietary Information</Text>
+          <View style={styles.dietarySection}>
+            <Text style={styles.sectionSubtitle}>Dietary Information</Text>
             <View style={styles.dietaryGrid}>
               {Object.entries(dietaryInfo).map(([key, value]) => (
                 <View key={key} style={styles.dietaryItem}>
                   <Text style={styles.dietaryLabel}>
-                    {key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                    {key.charAt(0).toUpperCase() + key.slice(1)}
                   </Text>
                   <Switch
                     value={value}
@@ -533,17 +472,23 @@ const AddProductScreen = () => {
           </View>
 
           <Card style={styles.warningCard}>
-            <View style={styles.warningContent}>
-              <Ionicons name="warning" size={20} color="#f59e0b" />
-              <View style={styles.warningText}>
+            <Card.Content>
+              <View style={styles.warningHeader}>
+                <Ionicons name="warning" size={24} color="#f59e0b" />
                 <Text style={styles.warningTitle}>Food Safety Notice</Text>
-                <Text style={styles.warningDescription}>
-                  • Ensure food is prepared in hygienic conditions{'\n'}
-                  • Food listings expire automatically after 24 hours{'\n'}
-                  • Exchange should happen as soon as possible for freshness
-                </Text>
               </View>
-            </View>
+              <View style={styles.warningList}>
+                <Text style={styles.warningItem}>• Ensure food is prepared in hygienic conditions</Text>
+                <Text style={styles.warningItem}>• Food listings expire automatically after 24 hours</Text>
+                <Text style={styles.warningItem}>• Exchange should happen as soon as possible for freshness</Text>
+                <View style={styles.expiryNotice}>
+                  <Text style={styles.expiryTitle}>Expiry Time:</Text>
+                  <Text style={styles.expiryTime}>
+                    {new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+            </Card.Content>
           </Card>
         </>
       ) : (
@@ -621,280 +566,436 @@ const AddProductScreen = () => {
   const renderExchangePreferences = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Exchange Preferences</Text>
-      
-      <Card style={[styles.freeOptionCard, { backgroundColor: isFree ? '#dcfce7' : theme.colors.surface }]}>
-        <View style={styles.freeOptionContent}>
-          <View style={styles.freeOptionText}>
-            <Text style={styles.freeOptionTitle}>List as Free Item</Text>
-            <Text style={styles.freeOptionDescription}>
-              Mark this item as free for others to claim
-            </Text>
-          </View>
-          <Switch
-            value={isFree}
-            onValueChange={setIsFree}
-          />
-        </View>
-      </Card>
+
+      {/* Free Item Option */}
+      <View style={styles.freeItemSection}>
+        <Card style={styles.freeItemCard}>
+          <Card.Content>
+            <View style={styles.freeItemHeader}>
+              <View>
+                <Text style={styles.freeItemTitle}>List as Free Item</Text>
+                <Text style={styles.freeItemSubtitle}>
+                  Mark this item as free for others to claim
+                </Text>
+              </View>
+              <Switch
+                value={isFree}
+                onValueChange={setIsFree}
+              />
+            </View>
+          </Card.Content>
+        </Card>
+
+        {isFree && (
+          <Card style={styles.infoCard}>
+            <Card.Content>
+              <View style={styles.infoHeader}>
+                <Ionicons name="gift" size={24} color={paperTheme.colors.primary} />
+                <Text style={styles.infoTitle}>Free Item Guidelines</Text>
+              </View>
+              <View style={styles.infoList}>
+                <Text style={styles.infoItem}>• First come, first served basis</Text>
+                <Text style={styles.infoItem}>• Others will message you to claim the item</Text>
+                <Text style={styles.infoItem}>• No bartering or cash exchange allowed</Text>
+                <Text style={styles.infoItem}>• Please be respectful of pickup arrangements</Text>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
+      </View>
 
       {!isFree && (
         <>
+          {/* Preferred Items */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Preferred Items</Text>
-            <View style={styles.addItemContainer}>
+            <View style={styles.chipInput}>
               <TextInput
                 mode="outlined"
                 value={newPreferredItem}
                 onChangeText={setNewPreferredItem}
                 placeholder={isFoodCategory ? "e.g., Other food items, Kitchen appliances" : "Add preferred item"}
-                style={[styles.textInput, styles.addItemInput]}
+                style={[styles.textInput, styles.chipInputField]}
+                right={
+                  <TextInput.Icon
+                    icon="plus"
+                    onPress={() => {
+                      if (newPreferredItem.trim()) {
+                        setPreferredItems([...preferredItems, newPreferredItem.trim()]);
+                        setNewPreferredItem('');
+                      }
+                    }}
+                  />
+                }
               />
-              <Button
-                mode="contained"
-                onPress={addPreferredItem}
-                style={styles.addButton}
-                compact
-              >
-                Add
-              </Button>
             </View>
-            <View style={styles.chipContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.chipsContainer}
+            >
               {preferredItems.map((item, index) => (
                 <Chip
                   key={index}
-                  onClose={() => setPreferredItems(prev => prev.filter((_, i) => i !== index))}
+                  onClose={() => setPreferredItems(preferredItems.filter((_, i) => i !== index))}
                   style={styles.chip}
                 >
                   {item}
                 </Chip>
               ))}
-            </View>
+            </ScrollView>
           </View>
 
+          {/* Not Interested In */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Not Interested In</Text>
-            <View style={styles.addItemContainer}>
+            <View style={styles.chipInput}>
               <TextInput
                 mode="outlined"
                 value={newNotInterestedItem}
                 onChangeText={setNewNotInterestedItem}
                 placeholder={isFoodCategory ? "e.g., Electronics, Clothing" : "Add item you're not interested in"}
-                style={[styles.textInput, styles.addItemInput]}
+                style={[styles.textInput, styles.chipInputField]}
+                right={
+                  <TextInput.Icon
+                    icon="plus"
+                    onPress={() => {
+                      if (newNotInterestedItem.trim()) {
+                        setNotInterestedIn([...notInterestedIn, newNotInterestedItem.trim()]);
+                        setNewNotInterestedItem('');
+                      }
+                    }}
+                  />
+                }
               />
-              <Button
-                mode="contained"
-                onPress={addNotInterestedItem}
-                style={styles.addButton}
-                compact
-              >
-                Add
-              </Button>
             </View>
-            <View style={styles.chipContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.chipsContainer}
+            >
               {notInterestedIn.map((item, index) => (
                 <Chip
                   key={index}
-                  onClose={() => setNotInterestedIn(prev => prev.filter((_, i) => i !== index))}
+                  onClose={() => setNotInterestedIn(notInterestedIn.filter((_, i) => i !== index))}
                   style={styles.chip}
                 >
                   {item}
                 </Chip>
               ))}
-            </View>
+            </ScrollView>
           </View>
 
-          <View style={styles.switchGroup}>
-            <View style={styles.switchItem}>
-              <Text style={styles.switchLabel}>Accept Cash Offers</Text>
-              <Switch
-                value={cashOption}
-                onValueChange={setCashOption}
-              />
-            </View>
+          {/* Cash Options */}
+          <View style={styles.inputGroup}>
+            <Card style={styles.cashOptionsCard}>
+              <Card.Content>
+                <View style={styles.cashOptionHeader}>
+                  <View>
+                    <Text style={styles.cashOptionTitle}>Accept Cash Offers</Text>
+                    <Text style={styles.cashOptionSubtitle}>
+                      Allow buyers to make cash offers
+                    </Text>
+                  </View>
+                  <Switch
+                    value={cashOption}
+                    onValueChange={setCashOption}
+                  />
+                </View>
+
+                {cashOption && (
+                  <View style={styles.priceInputs}>
+                    <View style={styles.priceInputRow}>
+                      <View style={styles.priceInputHalf}>
+                        <Text style={styles.inputLabel}>Minimum Price (PKR)</Text>
+                        <TextInput
+                          mode="outlined"
+                          value={minPrice}
+                          onChangeText={(value) => {
+                            if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
+                              setMinPrice(value);
+                            }
+                          }}
+                          keyboardType="decimal-pad"
+                          placeholder="0"
+                          style={styles.textInput}
+                          left={<TextInput.Affix text="PKR" />}
+                        />
+                      </View>
+                      <View style={styles.priceInputHalf}>
+                        <Text style={styles.inputLabel}>Maximum Price (PKR)</Text>
+                        <TextInput
+                          mode="outlined"
+                          value={maxPrice}
+                          onChangeText={(value) => {
+                            if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
+                              setMaxPrice(value);
+                            }
+                          }}
+                          keyboardType="decimal-pad"
+                          placeholder="0"
+                          style={styles.textInput}
+                          left={<TextInput.Affix text="PKR" />}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.fixedPriceInput}>
+                      <Text style={styles.inputLabel}>Fixed Price (PKR) - Optional</Text>
+                      <TextInput
+                        mode="outlined"
+                        value={price}
+                        onChangeText={(value) => {
+                          if (/^\d*\.?\d{0,2}$/.test(value) || value === '') {
+                            setPrice(value);
+                          }
+                        }}
+                        keyboardType="decimal-pad"
+                        placeholder="Leave empty for negotiable pricing"
+                        style={styles.textInput}
+                        left={<TextInput.Affix text="PKR" />}
+                      />
+                      <Text style={styles.helperText}>
+                        If set, buyers will see this as your asking price
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </Card.Content>
+            </Card>
           </View>
 
-          {cashOption && (
-            <Card style={styles.pricingCard}>
-              <Text style={styles.pricingTitle}>Pricing Information</Text>
-              
-              <View style={styles.priceRow}>
-                <View style={styles.priceInput}>
-                  <Text style={styles.priceLabel}>Min Price (PKR)</Text>
-                  <TextInput
-                    mode="outlined"
-                    value={minPrice}
-                    onChangeText={setMinPrice}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    style={styles.textInput}
-                  />
-                </View>
-                <View style={styles.priceInput}>
-                  <Text style={styles.priceLabel}>Max Price (PKR)</Text>
-                  <TextInput
-                    mode="outlined"
-                    value={maxPrice}
-                    onChangeText={setMaxPrice}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    style={styles.textInput}
-                  />
-                </View>
-              </View>
+          {/* Exchange Notes */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Exchange Notes</Text>
+            <TextInput
+              mode="outlined"
+              value={exchangeNotes}
+              onChangeText={setExchangeNotes}
+              placeholder={isFoodCategory ? "e.g., Looking for healthy food exchanges, prefer organic items..." : "Any additional notes about exchange preferences"}
+              multiline
+              numberOfLines={3}
+              style={styles.textInput}
+            />
+          </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Fixed Price (PKR)</Text>
-                <TextInput
-                  mode="outlined"
-                  value={price}
-                  onChangeText={setPrice}
-                  placeholder="Leave empty for negotiable pricing"
-                  keyboardType="numeric"
-                  style={styles.textInput}
-                />
-              </View>
+          {isFoodCategory && (
+            <Card style={styles.infoCard}>
+              <Card.Content>
+                <View style={styles.infoHeader}>
+                  <Ionicons name="information-circle" size={24} color={paperTheme.colors.primary} />
+                  <Text style={styles.infoTitle}>Food Exchange Tips</Text>
+                </View>
+                <View style={styles.infoList}>
+                  <Text style={styles.infoItem}>• Consider equal portion sizes when exchanging</Text>
+                  <Text style={styles.infoItem}>• Specify dietary preferences clearly</Text>
+                  <Text style={styles.infoItem}>• Quick exchanges ensure freshness</Text>
+                </View>
+              </Card.Content>
             </Card>
           )}
         </>
       )}
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>
-          {isFree ? 'Additional Notes' : 'Exchange Notes'}
-        </Text>
-        <TextInput
-          mode="outlined"
-          value={exchangeNotes}
-          onChangeText={setExchangeNotes}
-          placeholder={
-            isFree 
-              ? "e.g., First come first served, pickup instructions..."
-              : isFoodCategory 
-                ? "e.g., Looking for healthy food exchanges..."
-                : "Any additional notes about exchange preferences"
-          }
-          multiline
-          numberOfLines={3}
-          style={styles.textInput}
-        />
-      </View>
     </View>
   );
 
-  const renderShippingOptions = () => (
+  const renderShipping = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Shipping & Location</Text>
-      
+      <Text style={styles.stepTitle}>Location & Shipping</Text>
+
       {isFoodCategory && (
         <Card style={styles.warningCard}>
-          <View style={styles.warningContent}>
-            <Ionicons name="restaurant" size={20} color="#f59e0b" />
-            <View style={styles.warningText}>
+          <Card.Content>
+            <View style={styles.warningHeader}>
+              <Ionicons name="fast-food" size={24} color="#f59e0b" />
               <Text style={styles.warningTitle}>Food Delivery Considerations</Text>
-              <Text style={styles.warningDescription}>
-                • In-person pickup is recommended for food safety{'\n'}
-                • Keep delivery distance short to maintain freshness{'\n'}
-                • Consider temperature-sensitive items
-              </Text>
             </View>
-          </View>
+            <View style={styles.warningList}>
+              <Text style={styles.warningItem}>• In-person pickup is recommended for food safety</Text>
+              <Text style={styles.warningItem}>• Keep delivery distance short to maintain freshness</Text>
+              <Text style={styles.warningItem}>• Consider temperature-sensitive items</Text>
+            </View>
+          </Card.Content>
         </Card>
       )}
 
-      <View style={styles.switchGroup}>
-        <View style={styles.switchItem}>
-          <Text style={styles.switchLabel}>In-Person Exchange</Text>
-          <Switch
-            value={inPerson}
-            onValueChange={setInPerson}
-          />
-        </View>
+      {/* Location Input */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Location *</Text>
+        <TextInput
+          mode="outlined"
+          value={location}
+          onChangeText={setLocation}
+          placeholder="Enter your location"
+          style={styles.textInput}
+          right={
+            <TextInput.Icon
+              icon="map-marker"
+              onPress={async () => {
+                try {
+                  const { status } = await Location.requestForegroundPermissionsAsync();
+                  if (status !== 'granted') {
+                    Alert.alert(
+                      'Permission Required',
+                      'Please grant location permissions to use this feature.'
+                    );
+                    return;
+                  }
+
+                  const currentLocation = await Location.getCurrentPositionAsync({});
+                  setLatitude(currentLocation.coords.latitude);
+                  setLongitude(currentLocation.coords.longitude);
+
+                  // Get address from coordinates
+                  const [address] = await Location.reverseGeocodeAsync({
+                    latitude: currentLocation.coords.latitude,
+                    longitude: currentLocation.coords.longitude,
+                  });
+
+                  if (address) {
+                    const locationString = [
+                      address.street,
+                      address.district,
+                      address.city,
+                      address.region,
+                    ]
+                      .filter(Boolean)
+                      .join(', ');
+                    setLocation(locationString);
+                  }
+                } catch (error) {
+                  Alert.alert(
+                    'Error',
+                    'Failed to get your location. Please enter it manually.'
+                  );
+                }
+              }}
+            />
+          }
+        />
       </View>
 
-      {inPerson && (
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Within Miles</Text>
-          <TextInput
-            mode="outlined"
-            value={withinMiles}
-            onChangeText={setWithinMiles}
-            placeholder="10"
-            keyboardType="numeric"
-            style={styles.textInput}
-          />
-          {isFoodCategory && (
-            <Text style={styles.helperText}>
-              Recommended: Keep within 25 miles for food freshness
-            </Text>
-          )}
-        </View>
-      )}
-
-      <View style={styles.switchGroup}>
-        <View style={styles.switchItem}>
-          <Text style={styles.switchLabel}>Can Ship</Text>
-          <Switch
-            value={canShip}
-            onValueChange={setCanShip}
-          />
-        </View>
-      </View>
-
-      {canShip && (
-        <>
-          {isFoodCategory && (
-            <Card style={styles.warningCard}>
-              <View style={styles.warningContent}>
-                <Ionicons name="warning" size={20} color="#f59e0b" />
-                <Text style={styles.warningDescription}>
-                  Shipping food items requires proper packaging and may affect freshness. Consider local pickup instead.
+      {/* In-Person Exchange */}
+      <View style={styles.inputGroup}>
+        <Card style={styles.optionCard}>
+          <Card.Content>
+            <View style={styles.optionHeader}>
+              <View>
+                <Text style={styles.optionTitle}>In-Person Exchange</Text>
+                <Text style={styles.optionSubtitle}>
+                  Allow local pickup and meetups
                 </Text>
               </View>
-            </Card>
-          )}
-          
-          <View style={styles.switchGroup}>
-            <View style={styles.switchItem}>
-              <Text style={styles.switchLabel}>Buyer Pays Shipping</Text>
               <Switch
-                value={buyerPaysShipping}
-                onValueChange={setBuyerPaysShipping}
+                value={inPerson}
+                onValueChange={setInPerson}
               />
             </View>
-          </View>
-        </>
-      )}
 
+            {inPerson && (
+              <View style={styles.optionDetails}>
+                <Text style={styles.inputLabel}>Within Miles</Text>
+                <TextInput
+                  mode="outlined"
+                  value={withinMiles}
+                  onChangeText={setWithinMiles}
+                  keyboardType="numeric"
+                  placeholder="Enter distance"
+                  style={styles.textInput}
+                  right={<TextInput.Affix text="miles" />}
+                />
+                {isFoodCategory && (
+                  <Text style={styles.helperText}>
+                    Recommended: Keep within 25 miles for food freshness
+                  </Text>
+                )}
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+      </View>
+
+      {/* Shipping Option */}
+      <View style={styles.inputGroup}>
+        <Card style={styles.optionCard}>
+          <Card.Content>
+            <View style={styles.optionHeader}>
+              <View>
+                <Text style={styles.optionTitle}>Can Ship</Text>
+                <Text style={styles.optionSubtitle}>
+                  Allow shipping to other locations
+                </Text>
+              </View>
+              <Switch
+                value={canShip}
+                onValueChange={setCanShip}
+              />
+            </View>
+
+            {canShip && (
+              <View style={styles.optionDetails}>
+                <View style={styles.shippingOption}>
+                  <Text style={styles.optionTitle}>Buyer Pays Shipping</Text>
+                  <Switch
+                    value={buyerPaysShipping}
+                    onValueChange={setBuyerPaysShipping}
+                  />
+                </View>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+
+        {isFoodCategory && canShip && (
+          <Card style={[styles.warningCard, styles.shippingWarning]}>
+            <Card.Content>
+              <Text style={styles.warningItem}>
+                ⚠️ Shipping food items requires proper packaging and may affect freshness.
+                Consider local pickup instead.
+              </Text>
+            </Card.Content>
+          </Card>
+        )}
+      </View>
+
+      {/* Preferred Meetup Locations */}
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Preferred Meet-up Locations</Text>
-        <View style={styles.addItemContainer}>
+        <View style={styles.chipInput}>
           <TextInput
             mode="outlined"
             value={newPreferredLocation}
             onChangeText={setNewPreferredLocation}
             placeholder={isFoodCategory ? "e.g., Central Park, Coffee shops" : "Add preferred location"}
-            style={[styles.textInput, styles.addItemInput]}
+            style={[styles.textInput, styles.chipInputField]}
+            right={
+              <TextInput.Icon
+                icon="plus"
+                onPress={() => {
+                  if (newPreferredLocation.trim()) {
+                    setPreferredLocations([...preferredLocations, newPreferredLocation.trim()]);
+                    setNewPreferredLocation('');
+                  }
+                }}
+              />
+            }
           />
-          <Button
-            mode="contained"
-            onPress={addPreferredLocation}
-            style={styles.addButton}
-            compact
-          >
-            Add
-          </Button>
         </View>
-        <View style={styles.chipContainer}>
-          {preferredLocations.map((location, index) => (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipsContainer}
+        >
+          {preferredLocations.map((loc, index) => (
             <Chip
               key={index}
-              onClose={() => setPreferredLocations(prev => prev.filter((_, i) => i !== index))}
+              onClose={() => setPreferredLocations(preferredLocations.filter((_, i) => i !== index))}
               style={styles.chip}
             >
-              {location}
+              {loc}
             </Chip>
           ))}
-        </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -908,49 +1009,11 @@ const AddProductScreen = () => {
       case 2:
         return renderExchangePreferences();
       case 3:
-        return renderShippingOptions();
+        return renderShipping();
       default:
         return null;
     }
   };
-
-  const renderNavigationButtons = () => (
-    <View style={styles.navigationButtons}>
-      {currentStep > 0 && (
-        <Button
-          mode="outlined"
-          onPress={() => setCurrentStep(prev => prev - 1)}
-          style={styles.navButton}
-        >
-          Previous
-        </Button>
-      )}
-      
-      {currentStep < STEPS.length - 1 ? (
-        <Button
-          mode="contained"
-          onPress={() => setCurrentStep(prev => prev + 1)}
-          disabled={!canProceedToNext()}
-          style={[styles.navButton, styles.nextButton]}
-        >
-          Next
-        </Button>
-      ) : (
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          disabled={!canProceedToNext() || createProductMutation.isPending}
-          style={[styles.navButton, styles.submitButton]}
-        >
-          {createProductMutation.isPending ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            isFree ? 'List Free Item' : 'List Item'
-          )}
-        </Button>
-      )}
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -965,7 +1028,37 @@ const AddProductScreen = () => {
           {renderStepContent()}
         </ScrollView>
         
-        {renderNavigationButtons()}
+        <View style={styles.navigationButtons}>
+          {currentStep > 0 && (
+            <Button
+              mode="outlined"
+              onPress={() => setCurrentStep(prev => prev - 1)}
+              style={styles.navButton}
+            >
+              Previous
+            </Button>
+          )}
+          
+          {currentStep < STEPS.length - 1 ? (
+            <Button
+              mode="contained"
+              onPress={() => setCurrentStep(prev => prev + 1)}
+              style={[styles.navButton, styles.nextButton]}
+            >
+              Next
+            </Button>
+          ) : (
+            <Button
+              mode="contained"
+              onPress={handleSubmit}
+              loading={createProductMutation.isPending}
+              disabled={createProductMutation.isPending}
+              style={[styles.navButton, styles.submitButton]}
+            >
+              {isFree ? 'List Free Item' : 'List Item'}
+            </Button>
+          )}
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -979,8 +1072,6 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  
-  // Header
   header: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
@@ -1021,8 +1112,6 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     textAlign: 'center',
   },
-
-  // Step Indicator
   stepIndicator: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1044,10 +1133,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   stepCircleActive: {
-    backgroundColor: '#0ea5e9',
+    backgroundColor: theme.colors.primary,
   },
   stepCircleCurrent: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: theme.colors.secondary,
   },
   stepText: {
     ...typography.caption,
@@ -1060,8 +1149,6 @@ const styles = StyleSheet.create({
     opacity: 1,
     fontWeight: '600',
   },
-
-  // Step Content
   stepContent: {
     padding: spacing.lg,
   },
@@ -1100,29 +1187,19 @@ const styles = StyleSheet.create({
     color: theme.colors.onSurface,
     opacity: 0.6,
   },
-
-  // Image Section
-  imageSection: {
+  imageScrollView: {
     marginTop: spacing.sm,
   },
   imageContainer: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  imageItem: {
-    width: 80,
-    height: 80,
+  imageWrapper: {
+    width: 100,
+    height: 100,
     borderRadius: 8,
     backgroundColor: theme.colors.surfaceVariant,
     position: 'relative',
-  },
-  imagePreview: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
-    backgroundColor: theme.colors.surfaceVariant,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   removeImageButton: {
     position: 'absolute',
@@ -1130,13 +1207,27 @@ const styles = StyleSheet.create({
     right: -8,
     zIndex: 1,
   },
+  mainImageBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  mainImageText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
   imageActions: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
   imageActionButton: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: theme.colors.primary,
@@ -1150,157 +1241,207 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     marginTop: spacing.xs,
   },
-
-  // Dietary Info
+  navigationButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.outline,
+  },
+  navButton: {
+    flex: 1,
+    marginHorizontal: spacing.xs,
+  },
+  nextButton: {
+    backgroundColor: theme.colors.primary,
+  },
+  submitButton: {
+    backgroundColor: theme.colors.secondary,
+  },
+  dietarySection: {
+    marginBottom: spacing.lg,
+  },
+  sectionSubtitle: {
+    ...typography.h3,
+    color: theme.colors.onSurface,
+    marginBottom: spacing.md,
+  },
   dietaryGrid: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   dietaryItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline,
   },
   dietaryLabel: {
     ...typography.body,
     color: theme.colors.onSurface,
   },
-
-  // Cards
   warningCard: {
-    backgroundColor: '#fef3c7',
-    marginBottom: spacing.lg,
+    backgroundColor: '#fff8e6',
+    marginTop: spacing.lg,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-  warningContent: {
-    flexDirection: 'row',
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  warningText: {
-    flex: 1,
-  },
-  warningTitle: {
-    ...typography.body,
-    fontWeight: '600',
-    color: '#92400e',
-    marginBottom: spacing.xs,
-  },
-  warningDescription: {
-    ...typography.caption,
-    color: '#92400e',
-    lineHeight: 18,
-  },
-
-  freeOptionCard: {
-    marginBottom: spacing.lg,
-  },
-  freeOptionContent: {
+  warningHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-  },
-  freeOptionText: {
-    flex: 1,
-  },
-  freeOptionTitle: {
-    ...typography.body,
-    fontWeight: '600',
-    color: theme.colors.onSurface,
-  },
-  freeOptionDescription: {
-    ...typography.caption,
-    color: theme.colors.onSurface,
-    opacity: 0.7,
-  },
-
-  pricingCard: {
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-    backgroundColor: theme.colors.surfaceVariant,
-  },
-  pricingTitle: {
-    ...typography.body,
-    fontWeight: '600',
-    color: theme.colors.onSurface,
-    marginBottom: spacing.md,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  priceInput: {
-    flex: 1,
-  },
-  priceLabel: {
-    ...typography.caption,
-    color: theme.colors.onSurface,
-    marginBottom: spacing.xs,
-  },
-
-  // Add Items
-  addItemContainer: {
-    flexDirection: 'row',
-    gap: spacing.sm,
     marginBottom: spacing.sm,
   },
-  addItemInput: {
-    flex: 1,
+  warningTitle: {
+    ...typography.h3,
+    color: '#f59e0b',
+    marginLeft: spacing.sm,
   },
-  addButton: {
-    backgroundColor: '#0ea5e9',
-    alignSelf: 'flex-end',
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  warningList: {
     gap: spacing.sm,
   },
+  warningItem: {
+    ...typography.body,
+    color: '#92400e',
+  },
+  expiryNotice: {
+    marginTop: spacing.md,
+    padding: spacing.sm,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+  },
+  expiryTitle: {
+    ...typography.caption,
+    color: '#92400e',
+    fontWeight: 'bold',
+  },
+  expiryTime: {
+    ...typography.body,
+    color: '#92400e',
+    marginTop: 2,
+  },
+  freeItemSection: {
+    gap: spacing.md,
+  },
+  freeItemCard: {
+    backgroundColor: theme.colors.primaryContainer,
+  },
+  freeItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  freeItemTitle: {
+    ...typography.h3,
+    color: theme.colors.onPrimaryContainer,
+  },
+  freeItemSubtitle: {
+    ...typography.body,
+    color: theme.colors.onPrimaryContainer,
+    opacity: 0.8,
+  },
+  infoCard: {
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  infoTitle: {
+    ...typography.h3,
+    color: theme.colors.onSurfaceVariant,
+    marginLeft: spacing.sm,
+  },
+  infoList: {
+    gap: spacing.sm,
+  },
+  infoItem: {
+    ...typography.body,
+    color: theme.colors.onSurfaceVariant,
+  },
+  chipInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  chipInputField: {
+    flex: 1,
+  },
+  chipsContainer: {
+    marginTop: spacing.sm,
+  },
   chip: {
-    backgroundColor: theme.colors.primary + '20',
+    marginRight: spacing.xs,
   },
-
-  // Switches
-  switchGroup: {
-    marginBottom: spacing.lg,
+  cashOptionsCard: {
+    backgroundColor: theme.colors.surfaceVariant,
   },
-  switchItem: {
+  cashOptionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  cashOptionTitle: {
+    ...typography.h3,
+    color: theme.colors.onSurfaceVariant,
+  },
+  cashOptionSubtitle: {
+    ...typography.body,
+    color: theme.colors.onSurfaceVariant,
+    opacity: 0.8,
+  },
+  priceInputs: {
+    gap: spacing.md,
+  },
+  priceInputRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  priceInputHalf: {
+    flex: 1,
+  },
+  fixedPriceInput: {
+    marginTop: spacing.sm,
+  },
+  helperText: {
+    ...typography.caption,
+    color: theme.colors.onSurfaceVariant,
+    opacity: 0.8,
+    marginTop: spacing.xs,
+  },
+  optionCard: {
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  optionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  optionTitle: {
+    ...typography.h3,
+    color: theme.colors.onSurfaceVariant,
+  },
+  optionSubtitle: {
+    ...typography.body,
+    color: theme.colors.onSurfaceVariant,
+    opacity: 0.8,
+  },
+  optionDetails: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  shippingOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing.sm,
   },
-  switchLabel: {
-    ...typography.body,
-    color: theme.colors.onSurface,
-    fontWeight: '500',
-  },
-
-  helperText: {
-    ...typography.caption,
-    color: '#f59e0b',
-    marginTop: spacing.xs,
-  },
-
-  // Navigation
-  navigationButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: spacing.lg,
-    backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.outline,
-    gap: spacing.md,
-  },
-  navButton: {
-    flex: 1,
-  },
-  nextButton: {
-    backgroundColor: '#0ea5e9',
-  },
-  submitButton: {
-    backgroundColor: '#f59e0b',
+  shippingWarning: {
+    marginTop: spacing.sm,
+    backgroundColor: '#fff8e6',
   },
 });
 

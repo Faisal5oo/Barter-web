@@ -92,7 +92,7 @@ const HomeScreen = () => {
             Trade What You Have,{'\n'}Get What You Need
           </Text>
           <Text style={styles.heroSubtitle}>
-            BarterX is a modern marketplace that lets you barter your items for things you actually want. No more gathering dust, start creating value.
+            EcoTradeX is a modern marketplace that lets you barter your items for things you actually want. No more gathering dust, start creating value.
           </Text>
           <View style={styles.heroButtons}>
             <Button

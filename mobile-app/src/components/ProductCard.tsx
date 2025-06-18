@@ -48,10 +48,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const formatPrice = (product: Product) => {
     if (product.isFree) return 'Free';
     if (product.exchangePreferences.price) {
-      return `$${product.exchangePreferences.price}`;
+      return `PKR ${product.exchangePreferences.price}`;
     }
     if (product.exchangePreferences.estimatedValue) {
-      return `~$${product.exchangePreferences.estimatedValue}`;
+      return `~PKR ${product.exchangePreferences.estimatedValue}`;
     }
     return 'Barter Only';
   };

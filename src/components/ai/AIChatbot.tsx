@@ -88,7 +88,7 @@ const AIChatbot: React.FC<AIChatbotProps> = ({
   const predefinedAnswers = {
     "how do i list an item": "To list an item: 1) Click 'List Item' 2) Upload photos 3) Add description 4) Set category 5) Choose exchange preferences. Food items expire in 24 hours!",
     "how does bartering work": "Bartering is simple: 1) Browse items 2) Make offers with your items/cash 3) Negotiate 4) Meet safely 5) Exchange & rate. Always meet in public!",
-    "is it safe to trade here": "Yes! BarterX has user ratings, identity verification, safe meetup suggestions, and reporting features. Always meet in public places!",
+    "is it safe to trade here": "Yes! CirculaX has user ratings, identity verification, safe meetup suggestions, and reporting features. Always meet in public places!",
     "how to find nearby items": "Use the 'Nearby' page, enable location access, adjust distance filters (5-50 miles), and use category filters to find local items.",
     "what's the best way to negotiate": "Be fair, communicate clearly, consider both items' value, be flexible with add-ons like cash, and always be respectful.",
     "how do ratings work": "After each trade, both users rate each other (1-5 stars). Good ratings build trust and help you get better trade offers!"
@@ -119,7 +119,7 @@ const AIChatbot: React.FC<AIChatbotProps> = ({
               </AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle className="text-sm">BarterX AI Assistant</CardTitle>
+              <CardTitle className="text-sm">CirculaX AI Assistant</CardTitle>
               <p className="text-xs text-muted-foreground">
                 {aiStatus?.available !== false ? 'Online' : 'Offline'}
               </p>
@@ -151,7 +151,7 @@ const AIChatbot: React.FC<AIChatbotProps> = ({
               {messages.length === 0 && (
                 <div className="text-center py-8">
                   <Sparkles className="h-12 w-12 mx-auto text-primary mb-4" />
-                  <h3 className="font-medium mb-2">Welcome to BarterX AI!</h3>
+                  <h3 className="font-medium mb-2">Welcome to CirculaX AI!</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                     I can help you find products and understand bartering.
                   </p>
@@ -235,7 +235,7 @@ const AIChatbot: React.FC<AIChatbotProps> = ({
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask me anything about BarterX..."
+                placeholder="Ask me anything about CirculaX..."
                 disabled={isLoading}
                 className="flex-1"
               />

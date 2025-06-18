@@ -24,7 +24,7 @@ const TermsPage = () => {
       id: "acceptance",
       title: "1. Acceptance of Terms",
       content: [
-        "By accessing and using BarterX, you accept and agree to be bound by the terms and provision of this agreement.",
+        "By accessing and using CirculaX, you accept and agree to be bound by the terms and provision of this agreement.",
         "If you do not agree to abide by the above, please do not use this service.",
         "These terms apply to all visitors, users, and others who access or use the service."
       ]
@@ -33,16 +33,16 @@ const TermsPage = () => {
       id: "description",
       title: "2. Service Description",
       content: [
-        "BarterX is a platform that facilitates the exchange of goods and services between users.",
+        "CirculaX is a platform that facilitates the exchange of goods and services between users.",
         "We provide a marketplace where users can list items, make offers, and communicate with other users.",
-        "BarterX acts as an intermediary platform and is not a party to any transactions between users."
+        "CirculaX acts as an intermediary platform and is not a party to any transactions between users."
       ]
     },
     {
       id: "eligibility",
       title: "3. User Eligibility",
       content: [
-        "You must be at least 18 years old to use BarterX.",
+        "You must be at least 18 years old to use CirculaX.",
         "You must provide accurate and complete information when creating an account.",
         "You are responsible for maintaining the confidentiality of your account credentials.",
         "You may not create multiple accounts or share your account with others."
@@ -52,7 +52,7 @@ const TermsPage = () => {
       id: "conduct",
       title: "4. User Conduct",
       content: [
-        "You agree to use BarterX only for lawful purposes and in accordance with these Terms.",
+        "You agree to use CirculaX only for lawful purposes and in accordance with these Terms.",
         "You will not post false, misleading, or fraudulent listings.",
         "You will not engage in any form of harassment, abuse, or discrimination.",
         "You will not attempt to circumvent our safety and security measures.",
@@ -64,7 +64,7 @@ const TermsPage = () => {
       title: "5. Listings and Transactions",
       content: [
         "You are solely responsible for the accuracy of your listings and item descriptions.",
-        "All transactions are between users; BarterX is not responsible for the quality, safety, or legality of items.",
+        "All transactions are between users; CirculaX is not responsible for the quality, safety, or legality of items.",
         "Users must comply with all applicable laws regarding the sale or exchange of items.",
         "Prohibited items include but are not limited to: illegal substances, weapons, stolen goods, and hazardous materials."
       ]
@@ -75,7 +75,7 @@ const TermsPage = () => {
       content: [
         "Users are responsible for their own safety when meeting for exchanges.",
         "We recommend meeting in public places and following our safety guidelines.",
-        "BarterX is not liable for any incidents that occur during in-person meetings.",
+        "CirculaX is not liable for any incidents that occur during in-person meetings.",
         "Report any suspicious activity or safety concerns immediately."
       ]
     },
@@ -83,7 +83,7 @@ const TermsPage = () => {
       id: "intellectual",
       title: "7. Intellectual Property",
       content: [
-        "BarterX and its original content, features, and functionality are owned by BarterX and are protected by copyright, trademark, and other laws.",
+        "CirculaX and its original content, features, and functionality are owned by CirculaX and are protected by copyright, trademark, and other laws.",
         "You retain ownership of content you post, but grant us a license to use it on our platform.",
         "You may not use our trademarks or copyrighted material without permission."
       ]
@@ -94,7 +94,7 @@ const TermsPage = () => {
       content: [
         "Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the Service.",
         "We collect and use information as described in our Privacy Policy.",
-        "By using BarterX, you consent to the collection and use of your information as outlined in our Privacy Policy."
+        "By using CirculaX, you consent to the collection and use of your information as outlined in our Privacy Policy."
       ]
     },
     {
@@ -111,7 +111,7 @@ const TermsPage = () => {
       id: "liability",
       title: "10. Limitation of Liability",
       content: [
-        "BarterX shall not be liable for any indirect, incidental, special, consequential, or punitive damages.",
+        "CirculaX shall not be liable for any indirect, incidental, special, consequential, or punitive damages.",
         "Our total liability to you for any damages shall not exceed the amount you paid to us in the past 12 months.",
         "We do not guarantee the accuracy, completeness, or usefulness of any information on the Service.",
         "Use of the Service is at your own risk."
@@ -121,7 +121,7 @@ const TermsPage = () => {
       id: "disputes",
       title: "11. Dispute Resolution",
       content: [
-        "Any disputes arising from these Terms or your use of BarterX shall be resolved through binding arbitration.",
+        "Any disputes arising from these Terms or your use of CirculaX shall be resolved through binding arbitration.",
         "You agree to resolve disputes individually and waive any right to participate in class action lawsuits.",
         "Arbitration will be conducted in accordance with the rules of the American Arbitration Association."
       ]
@@ -187,7 +187,7 @@ const TermsPage = () => {
             </div>
           </div>
           <p className="text-xl opacity-90">
-            Please read these terms carefully before using BarterX. By using our service, you agree to these terms.
+            Please read these terms carefully before using CirculaX. By using our service, you agree to these terms.
           </p>
         </div>
       </section>
@@ -274,12 +274,12 @@ const TermsPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <h4 className="font-semibold mb-2">Email Support</h4>
-                      <p className="text-sm text-muted-foreground">legal@barterx.com</p>
+                      <p className="text-sm text-muted-foreground">legal@circulax.com</p>
                     </div>
                     <div>
                       <h4 className="font-semibold mb-2">Mailing Address</h4>
                       <p className="text-sm text-muted-foreground">
-                        BarterX Legal Department<br />
+                        CirculaX Legal Department<br />
                         123 Commerce Street<br />
                         Tech District, CA 94105
                       </p>

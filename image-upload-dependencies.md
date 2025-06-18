@@ -2,7 +2,6 @@
 
 ## Required Dependencies
 
-All major dependencies should already be installed in your BarterX project. Here's a checklist:
 
 ### ✅ Already Installed (from conversation summary)
 - `@tanstack/react-query` - For state management

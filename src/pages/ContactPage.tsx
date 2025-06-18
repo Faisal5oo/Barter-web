@@ -60,7 +60,7 @@ const ContactPage = () => {
       icon: Mail,
       title: "Email Support",
       description: "Send us a detailed message",
-      detail: "support@barterx.com",
+      detail: "support@circulax.com",
       action: "Send Email"
     },
     {
@@ -95,9 +95,9 @@ const ContactPage = () => {
       icon: Mail,
       title: "Email Addresses",
       details: [
-        "General: support@barterx.com",
-        "Business: business@barterx.com",
-        "Press: press@barterx.com"
+        "General: support@circulax.com",
+        "Business: business@circulax.com",
+        "Press: press@circulax.com"
       ]
     }
   ];

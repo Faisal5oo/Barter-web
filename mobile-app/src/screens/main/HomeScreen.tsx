@@ -92,7 +92,7 @@ const HomeScreen = () => {
             Trade What You Have,{'\n'}Get What You Need
           </Text>
           <Text style={styles.heroSubtitle}>
-            BarterX is a modern marketplace that lets you barter your items for things you actually want. No more gathering dust, start creating value.
+            CirculaX is a modern marketplace that lets you barter your items for things you actually want. No more gathering dust, start creating value.
           </Text>
           <View style={styles.heroButtons}>
             <Button
@@ -312,7 +312,7 @@ const HomeScreen = () => {
 
   const renderHowItWorks = () => (
     <View style={styles.howItWorksSection}>
-      <Text style={styles.sectionTitle}>How BarterX Works</Text>
+      <Text style={styles.sectionTitle}>How CirculaX Works</Text>
       <Text style={styles.sectionSubtitle}>Simple steps to start trading</Text>
 
       <View style={styles.howItWorksSteps}>
@@ -362,7 +362,7 @@ const HomeScreen = () => {
     <View style={styles.safetySection}>
       <View style={styles.safetyContent}>
         <View style={styles.safetyText}>
-          <Text style={styles.safetyTitle}>Trading Safely on BarterX</Text>
+          <Text style={styles.safetyTitle}>Trading Safely on CirculaX</Text>
           
           <View style={styles.safetyTips}>
             <View style={styles.safetyTip}>
@@ -390,7 +390,7 @@ const HomeScreen = () => {
               <View style={styles.safetyTipContent}>
                 <Text style={styles.safetyTipTitle}>Use secure payment methods</Text>
                 <Text style={styles.safetyTipDescription}>
-                  When cash is involved, use the BarterX secure payment system.
+                  When cash is involved, use the CirculaX secure payment system.
                 </Text>
               </View>
             </View>

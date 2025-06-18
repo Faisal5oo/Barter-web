@@ -90,7 +90,7 @@ const RegisterScreen = () => {
       dispatch(loginSuccess(response));
       
       Alert.alert(
-        'Welcome to BarterX!',
+        'Welcome to CirculaX!',
         'Your account has been created successfully.',
         [{ text: 'OK' }]
       );
@@ -268,7 +268,7 @@ const RegisterScreen = () => {
           {/* Benefits */}
           <Card style={styles.benefitsCard}>
             <View style={styles.benefitsContent}>
-              <Text style={styles.benefitsTitle}>Why join BarterX?</Text>
+              <Text style={styles.benefitsTitle}>Why join CirculaX?</Text>
               
               <View style={styles.benefitItem}>
                 <Ionicons name="swap-horizontal" size={20} color={theme.colors.primary} />

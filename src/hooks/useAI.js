@@ -74,9 +74,9 @@ export const useChatConversation = () => {
   const chatMutation = useAIChatMessage();
 
   const predefinedAnswers = {
-    "how do i list an item": "To list an item on BarterX: 1) Click 'List Item' or go to Add Product page 2) Upload clear photos 3) Add detailed description 4) Set category & location 5) Choose exchange preferences (barter/cash/both). Food items expire in 24 hours!",
+    "how do i list an item": "To list an item on CirculaX: 1) Click 'List Item' or go to Add Product page 2) Upload clear photos 3) Add detailed description 4) Set category & location 5) Choose exchange preferences (barter/cash/both). Food items expire in 24 hours!",
     "how does bartering work": "Bartering is simple: 1) Browse items you want 2) Click 'Make Offer' 3) Select your items to trade 4) Add cash if needed 5) Wait for response 6) Meet safely in public 7) Exchange items & rate each other!",
-    "is it safe to trade here": "Yes! BarterX prioritizes safety with: ✅ User ratings & reviews ✅ Identity verification ✅ Safe meetup suggestions ✅ In-app messaging ✅ Report/block features. Always meet in public places!",
+    "is it safe to trade here": "Yes! CirculaX prioritizes safety with: ✅ User ratings & reviews ✅ Identity verification ✅ Safe meetup suggestions ✅ In-app messaging ✅ Report/block features. Always meet in public places!",
     "how to find nearby items": "Finding nearby items: 1) Visit 'Nearby' page 2) Enable location access 3) Adjust distance filter (5-50 miles) 4) Use category filters 5) Sort by distance. Check food items first as they expire quickly!",
     "what's the best way to negotiate": "Negotiation tips: 1) Be fair & respectful 2) Research item values 3) Consider both items' condition 4) Be flexible with cash add-ons 5) Communicate clearly 6) Start with reasonable offers",
     "how do ratings work": "After each trade, both users rate each other (1-5 stars). Good ratings build trust and help you get better trade offers. Be honest and fair in your ratings!"

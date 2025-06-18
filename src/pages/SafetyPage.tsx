@@ -79,7 +79,7 @@ const SafetyPage = () => {
     {
       icon: MessageSquare,
       title: "Requests to Move Off-Platform",
-      description: "Keep all communication within BarterX for your protection"
+      description: "Keep all communication within CirculaX for your protection"
     },
     {
       icon: MapPin,
@@ -142,7 +142,7 @@ const SafetyPage = () => {
             Your Safety is Our Priority
           </h1>
           <p className="text-xl opacity-90 mb-8">
-            Learn how to trade safely and securely on BarterX with our comprehensive safety guidelines
+            Learn how to trade safely and securely on CirculaX with our comprehensive safety guidelines
           </p>
           <Button size="lg" className="bg-marketplace-amber hover:bg-amber-500 text-marketplace-blue">
             <Flag className="h-5 w-5 mr-2" />
@@ -238,7 +238,7 @@ const SafetyPage = () => {
           {/* Platform Safety Features */}
           <section className="mb-16">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">How BarterX Keeps You Safe</h2>
+              <h2 className="text-3xl font-bold mb-4">How CirculaX Keeps You Safe</h2>
               <p className="text-muted-foreground text-lg">
                 We've built multiple layers of protection into our platform
               </p>
@@ -282,7 +282,7 @@ const SafetyPage = () => {
                       <li>• Trust your instincts and leave immediately</li>
                       <li>• Go to a public place with other people</li>
                       <li>• Contact local authorities if necessary</li>
-                      <li>• Report the incident to BarterX support</li>
+                      <li>• Report the incident to CirculaX support</li>
                     </ul>
                   </div>
                   <div>
@@ -303,7 +303,7 @@ const SafetyPage = () => {
           <section className="text-center bg-muted rounded-lg p-8">
             <h2 className="text-3xl font-bold mb-4">Need to Report Something?</h2>
             <p className="text-muted-foreground text-lg mb-6">
-              Our support team is here to help keep the BarterX community safe
+              Our support team is here to help keep the CirculaX community safe
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="flex items-center gap-2">

@@ -53,7 +53,7 @@ const Index = () => {
                 Get What You Need
               </h1>
               <p className="text-lg opacity-90">
-                BarterNexus is a modern marketplace that lets you barter your
+                CirculaX is a modern marketplace that lets you barter your
                 items for things you actually want. No more gathering dust,
                 start creating value.
               </p>
@@ -222,7 +222,7 @@ const Index = () => {
       <section className="py-16 bg-muted">
         <div className="container">
           <div className="text-center mb-12 animate-fade-up">
-            <h2 className="text-2xl font-semibold">How BarterX Works</h2>
+            <h2 className="text-2xl font-semibold">How CirculaX Works</h2>
             <p className="text-muted-foreground mt-2">
               Simple steps to start trading
             </p>
@@ -277,7 +277,7 @@ const Index = () => {
           <div className="flex flex-col md:flex-row gap-8 items-center">
             <div className="md:w-1/2 animate-slide-left">
               <h2 className="text-2xl font-semibold mb-4">
-                Trading Safely on BarterX
+                Trading Safely on CirculaX
               </h2>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
@@ -309,7 +309,7 @@ const Index = () => {
                   <div>
                     <h3 className="font-medium">Use secure payment methods</h3>
                     <p className="text-muted-foreground">
-                      When cash is involved, use the BarterX secure payment
+                      When cash is involved, use the CirculaX secure payment
                       system.
                     </p>
                   </div>

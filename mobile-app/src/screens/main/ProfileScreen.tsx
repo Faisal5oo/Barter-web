@@ -85,8 +85,8 @@ const ProfileScreen = () => {
 
   const handleAbout = () => {
     Alert.alert(
-      'About BarterX',
-      'BarterX is a modern marketplace that lets you barter your items for things you actually want.\n\nVersion 1.0.0',
+      'About CirculaX',
+      'CirculaX is a modern marketplace that lets you barter your items for things you actually want.\n\nVersion 1.0.0',
       [{ text: 'OK' }]
     );
   };
@@ -264,7 +264,7 @@ const ProfileScreen = () => {
           <Divider />
           
           <List.Item
-            title="About BarterX"
+            title="About CirculaX"
             description="App version and info"
             left={(props) => <List.Icon {...props} icon="information-outline" />}
             right={(props) => <List.Icon {...props} icon="chevron-right" />}
@@ -285,7 +285,7 @@ const ProfileScreen = () => {
         </Button>
 
         {/* Version Info */}
-        <Text style={styles.versionText}>BarterX v1.0.0</Text>
+        <Text style={styles.versionText}>CirculaX v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );

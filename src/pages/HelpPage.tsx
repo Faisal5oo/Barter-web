@@ -28,7 +28,7 @@ const HelpPage = () => {
     {
       icon: Package,
       title: "Getting Started",
-      description: "Learn the basics of using BarterX",
+      description: "Learn the basics of using CirculaX",
       articles: 12
     },
     {
@@ -60,7 +60,7 @@ const HelpPage = () => {
   const faqs = [
     {
       category: "Getting Started",
-      question: "How do I create an account on BarterX?",
+      question: "How do I create an account on CirculaX?",
       answer: "Creating an account is simple! Click the 'Sign Up' button, enter your email, create a password, and verify your location. You'll be ready to start trading in minutes."
     },
     {

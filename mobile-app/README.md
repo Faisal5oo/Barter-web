@@ -1,6 +1,5 @@
-# BarterX Mobile App
+# CirculaX Mobile App
 
-A React Native mobile application for the BarterX marketplace platform, built with Expo SDK 53. This app allows users to trade items, browse products, and connect with other traders in their local area.
 
 ## 🚀 Features
 

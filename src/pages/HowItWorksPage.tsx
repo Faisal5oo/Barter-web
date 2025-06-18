@@ -89,13 +89,13 @@ const HowItWorksPage = () => {
         <div className="container max-w-6xl mx-auto px-4">
           <div className="text-center space-y-6">
             <h1 className="text-4xl md:text-5xl font-bold">
-              How BarterX Works
+              How CirculaX Works
             </h1>
             <p className="text-xl opacity-90 max-w-3xl mx-auto">
               Barter, Buy, and Sell — Simply and Safely
             </p>
             <p className="text-lg opacity-80 max-w-4xl mx-auto">
-              BarterX is your all-in-one platform for exchanging goods directly with people near you. 
+              CirculaX is your all-in-one platform for exchanging goods directly with people near you. 
               Whether you're trading a guitar for a bicycle or selling your old phone for cash, 
               here's how to make it happen.
             </p>
@@ -109,7 +109,7 @@ const HowItWorksPage = () => {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Step-by-Step Process</h2>
             <p className="text-muted-foreground text-lg">
-              Get started with BarterX in just 6 simple steps
+              Get started with CirculaX in just 6 simple steps
             </p>
           </div>
 
@@ -139,13 +139,13 @@ const HowItWorksPage = () => {
         </div>
       </section>
 
-      {/* Why Choose BarterX */}
+      {/* Why Choose CirculaX */}
       <section className="py-16 bg-muted">
         <div className="container max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Why Choose BarterX?</h2>
+            <h2 className="text-3xl font-bold mb-4">Why Choose CirculaX?</h2>
             <p className="text-muted-foreground text-lg">
-              Discover the advantages that make BarterX the best choice for trading
+              Discover the advantages that make CirculaX the best choice for trading
             </p>
           </div>
 
@@ -178,7 +178,7 @@ const HowItWorksPage = () => {
               Ready to Get Started?
             </h2>
             <p className="text-xl opacity-90">
-              Join BarterX today and discover the power of community exchange.
+              Join CirculaX today and discover the power of community exchange.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button 

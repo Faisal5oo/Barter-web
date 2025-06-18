@@ -11,7 +11,7 @@ export const HomeScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text variant="headlineMedium" style={styles.title}>
-          Welcome to BarterX!
+          Welcome to CirculaX!
         </Text>
         
         {user && (
